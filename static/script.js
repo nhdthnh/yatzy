@@ -348,6 +348,11 @@ function startPolling() {
                     playSound('your_turn');
                 }
 
+                // Nếu đang là lượt của mình và chưa đổi lượt, giữ nguyên các xúc xắc đang chọn giữ
+                if (newState.can_act && gameState?.can_act && newState.current_player_idx === gameState.current_player_idx && newState.rolls_left === gameState.rolls_left) {
+                    newState.held = gameState.held;
+                }
+
                 gameState = newState;
                 renderAll();
 
@@ -407,8 +412,8 @@ async function handleRoll() {
     }
 }
 
-function toggleHold(idx) {
-    if (!gameState?.can_act || !gameState.has_rolled || gameState.rolls_left === 0 || isRollingAnimation) return;
+async function toggleHold(idx) {
+    if (!gameState?.can_act || gameState.rolls_left === 0 || isRollingAnimation) return;
 
     playSound('click');
     const pos = gameState.held.indexOf(idx);
@@ -418,6 +423,19 @@ function toggleHold(idx) {
         gameState.held.push(idx);
     }
     renderDice();
+
+    // Đồng bộ lên server để phòng online hoặc polling không bị mất trạng thái giữ
+    if (currentGameId) {
+        try {
+            await fetch(`/api/game/${currentGameId}/hold`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ held: gameState.held, player_id: myPlayerId })
+            });
+        } catch (e) {
+            console.warn('Lỗi đồng bộ giữ xúc xắc:', e);
+        }
+    }
 }
 
 async function handleScoreCategory(category) {
@@ -539,7 +557,7 @@ function renderTurnBanner() {
     } else if (!gameState.has_rolled) {
         btnRoll.disabled = false;
         rollBtnText.textContent = 'ĐỔ XÚC XẮC';
-        turnHint.textContent = 'Nhấn "ĐỔ XÚC XẮC" để bắt đầu lượt!';
+        turnHint.textContent = 'Nhấn "ĐỔ XÚC XẮC" hoặc bấm chọn xúc xắc bạn muốn giữ!';
     } else if (gameState.rolls_left > 0) {
         btnRoll.disabled = false;
         rollBtnText.textContent = `ĐỔ TIẾP (${gameState.rolls_left})`;
@@ -557,6 +575,7 @@ function renderDice() {
         const wrapper = document.createElement('div');
         const isHeld = gameState.held.includes(idx);
         wrapper.className = `die-wrapper ${isHeld ? 'is-held' : ''}`;
+        wrapper.setAttribute('title', isHeld ? 'Click để bỏ giữ' : 'Click để giữ lại xúc xắc này');
 
         const die = document.createElement('div');
         die.className = 'die';
@@ -571,12 +590,15 @@ function renderDice() {
 
         const tag = document.createElement('span');
         tag.className = 'hold-tag';
-        tag.textContent = 'GIỮ';
+        tag.textContent = isHeld ? '✓ ĐÃ GIỮ' : 'GIỮ';
 
         wrapper.appendChild(die);
         wrapper.appendChild(tag);
 
-        wrapper.addEventListener('click', () => toggleHold(idx));
+        wrapper.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleHold(idx);
+        });
         diceContainer.appendChild(wrapper);
     });
 }

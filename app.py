@@ -247,7 +247,7 @@ def roll(game_id):
 
     new_dice = []
     for i in range(5):
-        if has_rolled and i in held:
+        if i in held:
             new_dice.append(current_dice[i])
         else:
             new_dice.append(random.randint(1, 6))
@@ -259,6 +259,30 @@ def roll(game_id):
     game["last_activity"] = time.time()
 
     return jsonify(format_game_state(game, caller_player_id))
+
+@app.route("/api/game/<game_id>/hold", methods=["POST"])
+def toggle_hold_api(game_id):
+    if game_id not in GAMES:
+        return jsonify({"error": "Phòng chơi không tồn tại!"}), 404
+
+    game = GAMES[game_id]
+    if game["status"] != "playing":
+        return jsonify({"error": "Ván đấu chưa sẵn sàng!"}), 400
+
+    data = request.json or {}
+    caller_player_id = data.get("player_id", "")
+    current_idx = game["current_player_idx"]
+    active_player = game["players"][current_idx]
+
+    if game["mode"] == "online" and active_player["id"] != caller_player_id:
+        return jsonify({"error": "Chưa đến lượt của bạn!"}), 403
+
+    held = data.get("held", [])
+    held = [i for i in held if isinstance(i, int) and 0 <= i < 5]
+    game["held"] = held
+    game["last_activity"] = time.time()
+
+    return jsonify({"success": True, "held": held})
 
 @app.route("/api/game/<game_id>/score", methods=["POST"])
 def score(game_id):
