@@ -1,6 +1,6 @@
 // ==========================================================
 // MULTI-GAME ONLINE HUB CONTROLLER (CARO, Ô ĂN QUAN, ĐOÁN THÚ)
-// Nhẹ, siêu nhanh, tối ưu 100% cho 512MB RAM và di động
+// Kết nối trực tiếp 2 người (An & Thành) không cần gõ mã phòng
 // ==========================================================
 
 const HubOnline = (function() {
@@ -18,35 +18,13 @@ const HubOnline = (function() {
     }
 
     function bindModalEvents() {
-        const modal = document.getElementById('hub-online-modal');
         const btnClose = document.getElementById('btn-close-hub-modal');
-        const tabCreate = document.getElementById('tab-hub-create');
-        const tabJoin = document.getElementById('tab-hub-join');
-        const viewCreate = document.getElementById('hub-create-view');
-        const viewJoin = document.getElementById('hub-join-view');
-        const btnConfirmCreate = document.getElementById('btn-hub-confirm-create');
-        const btnConfirmJoin = document.getElementById('btn-hub-confirm-join');
-        const inputCode = document.getElementById('hub-join-room-code');
+        const btnCreate = document.getElementById('btn-hub-create-room');
+        const btnJoin = document.getElementById('btn-hub-join-room');
 
         if (btnClose) btnClose.addEventListener('click', closeModal);
 
-        if (tabCreate && tabJoin) {
-            tabCreate.addEventListener('click', () => {
-                tabCreate.classList.add('active');
-                tabJoin.classList.remove('active');
-                viewCreate.classList.remove('hidden');
-                viewJoin.classList.add('hidden');
-            });
-            tabJoin.addEventListener('click', () => {
-                tabJoin.classList.add('active');
-                tabCreate.classList.remove('active');
-                viewJoin.classList.remove('hidden');
-                viewCreate.classList.add('hidden');
-                if (inputCode) inputCode.focus();
-            });
-        }
-
-        // Tên An / Thành
+        // Nút chọn tên An / Thành
         document.querySelectorAll('[data-hub-name]').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('[data-hub-name]').forEach(b => b.classList.remove('active'));
@@ -55,22 +33,17 @@ const HubOnline = (function() {
             });
         });
 
-        // Tạo phòng
-        if (btnConfirmCreate) {
-            btnConfirmCreate.addEventListener('click', async () => {
+        // 1. Tạo phòng (Người 1 bấm)
+        if (btnCreate) {
+            btnCreate.addEventListener('click', async () => {
                 await createRoom(activeGameType, selectedName);
             });
         }
 
-        // Nhập mã phòng
-        if (btnConfirmJoin) {
-            btnConfirmJoin.addEventListener('click', async () => {
-                const code = (inputCode.value || '').trim().toUpperCase();
-                if (!code) {
-                    alert('Vui lòng nhập mã phòng!');
-                    return;
-                }
-                await joinRoom(code);
+        // 2. Vào phòng (Người 2 bấm - tự động vào phòng người 1 vừa tạo, không cần mã!)
+        if (btnJoin) {
+            btnJoin.addEventListener('click', async () => {
+                await joinRoom(activeGameType, selectedName);
             });
         }
     }
@@ -103,11 +76,10 @@ const HubOnline = (function() {
         });
     }
 
-    function openModal(gameType, defaultTab = 'create', prefillCode = '') {
+    async function openModal(gameType) {
         activeGameType = gameType;
         const modal = document.getElementById('hub-online-modal');
         const titleEl = document.getElementById('hub-modal-title');
-        const inputCode = document.getElementById('hub-join-room-code');
 
         const titles = {
             caro: '⭕ Cờ Caro Online',
@@ -117,28 +89,57 @@ const HubOnline = (function() {
 
         if (titleEl) titleEl.textContent = titles[gameType] || '🌐 Chơi Online 2 Người';
 
-        if (prefillCode && inputCode) {
-            inputCode.value = prefillCode.toUpperCase();
-        }
-
-        const tabCreate = document.getElementById('tab-hub-create');
-        const tabJoin = document.getElementById('tab-hub-join');
-        const viewCreate = document.getElementById('hub-create-view');
-        const viewJoin = document.getElementById('hub-join-view');
-
-        if (defaultTab === 'join') {
-            if (tabJoin) tabJoin.classList.add('active');
-            if (tabCreate) tabCreate.classList.remove('active');
-            if (viewJoin) viewJoin.classList.remove('hidden');
-            if (viewCreate) viewCreate.classList.add('hidden');
-        } else {
-            if (tabCreate) tabCreate.classList.add('active');
-            if (tabJoin) tabJoin.classList.remove('active');
-            if (viewCreate) viewCreate.classList.remove('hidden');
-            if (viewJoin) viewJoin.classList.add('hidden');
-        }
-
+        // Mở modal trước
         if (modal) modal.classList.add('active');
+
+        // Kiểm tra xem người kia đã tạo phòng chưa để báo hiệu ngay
+        await refreshLobbyStatus();
+    }
+
+    async function refreshLobbyStatus() {
+        const statusBanner = document.getElementById('hub-lobby-status');
+        const btnJoin = document.getElementById('btn-hub-join-room');
+        if (!statusBanner) return;
+
+        statusBanner.innerHTML = '<span class="status-dot pulsing"></span> Đang kiểm tra phòng...';
+        statusBanner.className = 'lobby-status-banner';
+
+        try {
+            const res = await fetch(`/api/hub/lobby_status?game_type=${activeGameType}`);
+            const data = await res.json();
+
+            if (data.has_waiting) {
+                const waitingName = data.waiting_name || 'Đối thủ';
+                statusBanner.className = 'lobby-status-banner has-waiting';
+                statusBanner.innerHTML = `🟢 <strong>${waitingName}</strong> đang mở phòng chờ bạn!`;
+
+                // Tự động chọn tên còn lại cho tiện
+                const otherName = (waitingName === 'An') ? 'Thành' : 'An';
+                document.querySelectorAll('[data-hub-name]').forEach(btn => {
+                    if (btn.dataset.hubName === otherName) {
+                        btn.classList.add('active');
+                        selectedName = otherName;
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+
+                if (btnJoin) {
+                    btnJoin.classList.add('highlight');
+                    btnJoin.textContent = `🎮 Vào Phòng Với ${waitingName}`;
+                }
+            } else {
+                statusBanner.className = 'lobby-status-banner';
+                statusBanner.innerHTML = '⚪ Chưa có phòng nào đang mở. Bấm "Tạo Phòng" để bắt đầu!';
+                if (btnJoin) {
+                    btnJoin.classList.remove('highlight');
+                    btnJoin.textContent = '🎮 Vào Phòng Ngay';
+                }
+            }
+        } catch (err) {
+            statusBanner.className = 'lobby-status-banner';
+            statusBanner.innerHTML = '⚪ Sẵn sàng kết nối 2 người chơi.';
+        }
     }
 
     function closeModal() {
@@ -146,6 +147,7 @@ const HubOnline = (function() {
         if (modal) modal.classList.remove('active');
     }
 
+    // 1. Tạo phòng Online
     async function createRoom(gameType, playerName) {
         stopPolling();
         try {
@@ -169,7 +171,6 @@ const HubOnline = (function() {
             dispatchRoomState(currentRoom);
             startPolling();
 
-            // Cập nhật trạng thái URL không tải lại trang
             updateUrlParam(gameType, currentRoom.room_code);
         } catch (err) {
             console.error('Lỗi createRoom:', err);
@@ -177,17 +178,18 @@ const HubOnline = (function() {
         }
     }
 
-    async function joinRoom(roomCode) {
+    // 2. Vào phòng Online (tự động kết nối phòng đang mở của người kia, không cần mã)
+    async function joinRoom(gameType, playerName) {
         stopPolling();
         try {
             const res = await fetch('/api/hub/join', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ room_code: roomCode })
+                body: JSON.stringify({ game_type: gameType, player_name: playerName })
             });
             const data = await res.json();
             if (!data.success) {
-                alert(data.error || 'Không thể tham gia phòng này!');
+                alert(data.error || 'Chưa có phòng nào đang chờ! Bạn hãy bấm "Tạo Phòng" trước nhé.');
                 return;
             }
 
@@ -196,7 +198,6 @@ const HubOnline = (function() {
             activeGameType = data.game_type;
 
             closeModal();
-            // Đảm bảo mở đúng tab game
             switchHubTab(activeGameType);
             showRoomBar(activeGameType, currentRoom);
             dispatchRoomState(currentRoom);
@@ -316,7 +317,9 @@ const HubOnline = (function() {
 
         if (statusEl) {
             if (room.status === 'waiting') {
-                statusEl.innerHTML = '<span class="status-dot pulsing"></span> Chờ đối thủ vào...';
+                const myName = room.caller_name || 'Bạn';
+                const opp = (myName === 'An') ? 'Thành' : 'An';
+                statusEl.innerHTML = `<span class="status-dot pulsing"></span> Chờ <strong>${opp}</strong> vào phòng...`;
             } else if (room.status === 'choosing_secret') {
                 statusEl.innerHTML = '<span class="status-dot pulsing"></span> Chọn con thú bí mật';
             } else if (room.status === 'playing') {

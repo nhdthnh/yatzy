@@ -202,14 +202,27 @@ def create_game():
 
 @app.route("/api/game/join", methods=["POST"])
 def join_game():
+    clean_old_games()
     data = request.json or {}
-    room_code = (data.get("room_code") or "").strip().upper()
-    player_name = (data.get("player_name") or "").strip() or "Người chơi 2"
+    room_code = (data.get("room_code") or data.get("game_id") or "").strip().upper()
+    req_player_name = normalize_player_name(data.get("player_name"), default="Thành")
 
-    if room_code not in GAMES:
-        return jsonify({"error": "Không tìm thấy phòng chơi với mã này!"}), 404
+    if not room_code:
+        # Tự động tìm phòng Yatzy đang chờ (chỉ 2 người An & Thành, không cần nhập mã)
+        waiting_games = [
+            g for g in GAMES.values()
+            if g.get("mode") == "online" and g.get("status") == "waiting" and len(g.get("players", [])) == 1
+        ]
+        if not waiting_games:
+            return jsonify({"error": "Chưa có phòng Yatzy nào đang mở! Hãy bấm Tạo Phòng nhé."}), 404
+        waiting_games.sort(key=lambda item: item.get("last_activity", 0), reverse=True)
+        game = waiting_games[0]
+        room_code = game["id"]
+    else:
+        if room_code not in GAMES:
+            return jsonify({"error": "Không tìm thấy phòng chơi với mã này!"}), 404
+        game = GAMES[room_code]
 
-    game = GAMES[room_code]
     if game["mode"] != "online":
         return jsonify({"error": "Phòng này không phải chế độ chơi Online!"}), 400
 
@@ -217,8 +230,11 @@ def join_game():
         return jsonify({"error": "Phòng chơi đã đủ 2 người!"}), 400
 
     p1_name = game["players"][0]["name"]
-    # Người tham gia nhận tên còn lại: An hoặc Thành
-    p2_name = "Thành" if p1_name == "An" else "An"
+    # Người tham gia nhận tên đã chọn nếu khác p1, hoặc tự động là người còn lại
+    if req_player_name and req_player_name != p1_name:
+        p2_name = req_player_name
+    else:
+        p2_name = "Thành" if p1_name == "An" else "An"
 
     p2_id = uuid.uuid4().hex
     game["players"].append({"id": p2_id, "name": p2_name})
@@ -671,17 +687,39 @@ def hub_create():
 def hub_join():
     clean_old_hub_rooms()
     data = request.json or {}
+    game_type = data.get("game_type", "")
     room_code = (data.get("room_code") or "").strip().upper()
+    req_player_name = normalize_player_name(data.get("player_name"), default="Thành")
 
-    if room_code not in HUB_ROOMS:
-        return jsonify({"error": "Không tìm thấy phòng chơi với mã này!"}), 404
+    if not room_code:
+        # Tự động tìm phòng đang chờ cho trò chơi này (Không cần nhập mã)
+        waiting_rooms = [
+            r for r in HUB_ROOMS.values()
+            if r.get("status") in ("waiting", "choosing_secret") and len(r.get("players", [])) == 1
+        ]
+        if game_type:
+            waiting_rooms = [r for r in waiting_rooms if r.get("game_type") == game_type]
 
-    room = HUB_ROOMS[room_code]
+        if not waiting_rooms:
+            return jsonify({"error": "Chưa có phòng nào đang mở! Hãy bấm Tạo Phòng nhé."}), 404
+
+        waiting_rooms.sort(key=lambda item: item.get("last_activity", 0), reverse=True)
+        room = waiting_rooms[0]
+        room_code = room["room_code"]
+    else:
+        if room_code not in HUB_ROOMS:
+            return jsonify({"error": "Không tìm thấy phòng chơi với mã này!"}), 404
+        room = HUB_ROOMS[room_code]
+
     if len(room["players"]) >= 2:
         return jsonify({"error": "Phòng chơi đã đủ 2 người!"}), 400
 
     p1_name = room["players"][0]["name"]
-    p2_name = "Thành" if p1_name == "An" else "An"
+    if req_player_name and req_player_name != p1_name:
+        p2_name = req_player_name
+    else:
+        p2_name = "Thành" if p1_name == "An" else "An"
+
     p2_id = uuid.uuid4().hex
 
     room["players"].append({"id": p2_id, "name": p2_name})
@@ -696,6 +734,41 @@ def hub_join():
         "game_type": room["game_type"],
         "room": format_hub_room_state(room, p2_id)
     })
+
+@app.route("/api/hub/lobby_status", methods=["GET"])
+def hub_lobby_status():
+    clean_old_hub_rooms()
+    clean_old_games()
+    game_type = request.args.get("game_type", "caro")
+
+    if game_type == "yatzy":
+        waiting = [
+            g for g in GAMES.values()
+            if g.get("mode") == "online" and g.get("status") == "waiting" and len(g.get("players", [])) == 1
+        ]
+        if waiting:
+            waiting.sort(key=lambda item: item.get("last_activity", 0), reverse=True)
+            w = waiting[0]
+            return jsonify({
+                "has_waiting": True,
+                "waiting_name": w["players"][0]["name"],
+                "room_code": w["id"]
+            })
+        return jsonify({"has_waiting": False})
+    else:
+        waiting = [
+            r for r in HUB_ROOMS.values()
+            if r.get("game_type") == game_type and r.get("status") in ("waiting", "choosing_secret") and len(r.get("players", [])) == 1
+        ]
+        if waiting:
+            waiting.sort(key=lambda item: item.get("last_activity", 0), reverse=True)
+            w = waiting[0]
+            return jsonify({
+                "has_waiting": True,
+                "waiting_name": w["players"][0]["name"],
+                "room_code": w["room_code"]
+            })
+        return jsonify({"has_waiting": False})
 
 @app.route("/api/hub/<room_code>/state", methods=["GET"])
 def hub_get_state(room_code):

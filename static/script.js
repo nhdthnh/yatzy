@@ -133,13 +133,10 @@ const passPlayForm = document.getElementById('pass-play-form');
 const btnStartPassPlay = document.getElementById('btn-start-pass-play');
 
 const onlineForm = document.getElementById('online-form');
-const tabCreateRoom = document.getElementById('tab-create-room');
-const tabJoinRoom = document.getElementById('tab-join-room');
-const createRoomView = document.getElementById('create-room-view');
-const joinRoomView = document.getElementById('join-room-view');
-const joinRoomCode = document.getElementById('join-room-code');
-const btnConfirmCreateRoom = document.getElementById('btn-confirm-create-room');
-const btnConfirmJoinRoom = document.getElementById('btn-confirm-join-room');
+const btnYatzyCreateRoom = document.getElementById('btn-yatzy-create-room');
+const btnYatzyJoinRoom = document.getElementById('btn-yatzy-join-room');
+const yatzyLobbyStatus = document.getElementById('yatzy-lobby-status');
+let selectedYatzyName = 'An';
 
 const rulesModal = document.getElementById('rules-modal');
 const btnCloseRules = document.getElementById('btn-close-rules');
@@ -351,18 +348,13 @@ function initApp() {
 
     if (roomParam) {
         if (gameParam === 'caro' || gameParam === 'oanquan' || gameParam === 'doanthu') {
-            // Chuyển sang game đó
             const targetBtn = document.querySelector(`.hub-tab-btn[data-game-target="${gameParam}"]`);
             if (targetBtn) targetBtn.click();
-            // Mở modal tham gia phòng online của game đó
             if (typeof HubOnline !== 'undefined') {
-                HubOnline.openModal(gameParam, 'join', roomParam);
+                HubOnline.joinRoom(gameParam, 'Thành');
             }
         } else {
-            // Mặc định là Yatzy
-            modeModal.classList.add('active');
-            showOnlineTab('join');
-            joinRoomCode.value = roomParam.toUpperCase();
+            handleJoinRoom(roomParam);
         }
     } else {
         if (gameParam && (gameParam === 'caro' || gameParam === 'oanquan' || gameParam === 'doanthu')) {
@@ -421,6 +413,7 @@ function setupEventListeners() {
                 passPlayForm.classList.remove('hidden');
             } else if (mode === 'online') {
                 onlineForm.classList.remove('hidden');
+                checkYatzyLobbyStatus();
             }
         });
     });
@@ -455,25 +448,25 @@ function setupEventListeners() {
         startNewGame('pass_play', p1, p2);
     });
 
-    // Online Name Toggle
-    document.querySelectorAll('[data-create-name]').forEach(btn => {
+    // Yatzy Online Name Toggle
+    document.querySelectorAll('[data-yatzy-name]').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('[data-create-name]').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('[data-yatzy-name]').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            selectedCreateName = btn.dataset.createName;
+            selectedYatzyName = btn.dataset.yatzyName || 'An';
         });
     });
 
-    // Online Tabs
-    tabCreateRoom.addEventListener('click', () => showOnlineTab('create'));
-    tabJoinRoom.addEventListener('click', () => showOnlineTab('join'));
+    if (btnYatzyCreateRoom) {
+        btnYatzyCreateRoom.addEventListener('click', () => {
+            modeModal.classList.remove('active');
+            startNewGame('online', selectedYatzyName);
+        });
+    }
 
-    btnConfirmCreateRoom.addEventListener('click', () => {
-        modeModal.classList.remove('active');
-        startNewGame('online', selectedCreateName);
-    });
-
-    btnConfirmJoinRoom.addEventListener('click', handleJoinRoom);
+    if (btnYatzyJoinRoom) {
+        btnYatzyJoinRoom.addEventListener('click', () => handleJoinRoom());
+    }
 
     btnCopyCode.addEventListener('click', () => {
         if (!gameState?.game_id) return;
@@ -524,17 +517,45 @@ function setupEventListeners() {
     if (backdropTip) backdropTip.addEventListener('click', hideCategoryTooltip);
 }
 
-function showOnlineTab(tab) {
-    if (tab === 'create') {
-        tabCreateRoom.classList.add('active');
-        tabJoinRoom.classList.remove('active');
-        createRoomView.classList.remove('hidden');
-        joinRoomView.classList.add('hidden');
-    } else {
-        tabJoinRoom.classList.add('active');
-        tabCreateRoom.classList.remove('active');
-        joinRoomView.classList.remove('hidden');
-        createRoomView.classList.add('hidden');
+async function checkYatzyLobbyStatus() {
+    if (!yatzyLobbyStatus) return;
+    yatzyLobbyStatus.innerHTML = '<span class="status-dot pulsing"></span> Đang kiểm tra phòng...';
+    yatzyLobbyStatus.className = 'lobby-status-banner';
+
+    try {
+        const res = await fetch('/api/hub/lobby_status?game_type=yatzy');
+        const data = await res.json();
+        if (data.has_waiting) {
+            const waitingName = data.waiting_name || 'Đối thủ';
+            yatzyLobbyStatus.className = 'lobby-status-banner has-waiting';
+            yatzyLobbyStatus.innerHTML = `🟢 <strong>${waitingName}</strong> đang mở phòng chờ bạn!`;
+
+            // Tự động chọn tên còn lại
+            const otherName = (waitingName === 'An') ? 'Thành' : 'An';
+            document.querySelectorAll('[data-yatzy-name]').forEach(btn => {
+                if (btn.dataset.yatzyName === otherName) {
+                    btn.classList.add('active');
+                    selectedYatzyName = otherName;
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            if (btnYatzyJoinRoom) {
+                btnYatzyJoinRoom.classList.add('highlight');
+                btnYatzyJoinRoom.textContent = `🎮 Vào Phòng Với ${waitingName}`;
+            }
+        } else {
+            yatzyLobbyStatus.className = 'lobby-status-banner';
+            yatzyLobbyStatus.innerHTML = '⚪ Chưa có phòng nào đang mở. Bấm "Tạo Phòng" để bắt đầu!';
+            if (btnYatzyJoinRoom) {
+                btnYatzyJoinRoom.classList.remove('highlight');
+                btnYatzyJoinRoom.textContent = '🎮 Vào Phòng Ngay';
+            }
+        }
+    } catch (err) {
+        yatzyLobbyStatus.className = 'lobby-status-banner';
+        yatzyLobbyStatus.innerHTML = '⚪ Sẵn sàng kết nối 2 người chơi.';
     }
 }
 
@@ -562,18 +583,13 @@ async function startNewGame(mode, p1Name, p2Name = '') {
     }
 }
 
-async function handleJoinRoom() {
-    const code = joinRoomCode.value.trim().toUpperCase();
-    if (!code) {
-        alert('Vui lòng nhập mã phòng!');
-        return;
-    }
-
+async function handleJoinRoom(codeParam = '') {
     try {
+        const payload = codeParam ? { room_code: codeParam, player_name: selectedYatzyName } : { player_name: selectedYatzyName };
         const res = await fetch('/api/game/join', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ room_code: code })
+            body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (data.error) {
@@ -589,7 +605,9 @@ async function handleJoinRoom() {
         startPolling();
     } catch (err) {
         console.error('Lỗi tham gia phòng:', err);
+        alert('Chưa có phòng nào đang chờ! Bạn hãy bấm "Tạo Phòng" trước nhé.');
     }
+}
 }
 
 function startPolling() {

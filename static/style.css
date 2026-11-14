@@ -1977,3 +1977,64 @@ body.light-theme {
     text-align: center;
     font-weight: 600;
 }
+
+/* 2-Player No-Code Online Lobby */
+.lobby-status-banner {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin: 12px 0 14px;
+    font-size: 0.85rem;
+    color: #475569;
+    text-align: center;
+    font-weight: 600;
+}
+
+.lobby-status-banner.has-waiting {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+    color: #065f46;
+}
+
+.online-action-row {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.online-action-row .btn-sub-action {
+    flex: 1;
+    margin-top: 0;
+    padding: 10px 8px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-sub-action.btn-create {
+    background: #2563eb;
+    color: #ffffff;
+}
+.btn-sub-action.btn-create:hover {
+    background: #1d4ed8;
+}
+
+.btn-sub-action.btn-join {
+    background: #ea580c;
+    color: #ffffff;
+}
+.btn-sub-action.btn-join:hover {
+    background: #c2410c;
+}
+
+.btn-sub-action.btn-join.highlight {
+    animation: pulseJoin 1.5s infinite;
+}
+
+@keyframes pulseJoin {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(234, 88, 12, 0); }
+}
