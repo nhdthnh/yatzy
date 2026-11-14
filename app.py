@@ -15,15 +15,30 @@ LOWER_CATEGORIES = [
 ]
 ALL_CATEGORIES = UPPER_CATEGORIES + LOWER_CATEGORIES
 
-# Bộ lưu trữ phòng chơi trong bộ nhớ (Thread-safe với single process multi-thread)
+# Bộ lưu trữ phòng chơi trong bộ nhớ (Giới hạn nhẹ nhàng cho máy 512MB RAM)
 GAMES = {}
+MAX_GAMES = 60
+GAME_TIMEOUT = 1800  # Tối đa 30 phút không hoạt động để giải phóng RAM
 
 def clean_old_games():
-    """Dọn dẹp các phòng chơi không hoạt động quá 6 tiếng."""
+    """Dọn dẹp phòng chơi cũ để giải phóng RAM tối đa."""
     now = time.time()
-    expired = [gid for gid, g in GAMES.items() if now - g.get("last_activity", now) > 21600]
+    expired = [gid for gid, g in GAMES.items() if now - g.get("last_activity", now) > GAME_TIMEOUT]
     for gid in expired:
         GAMES.pop(gid, None)
+    if len(GAMES) > MAX_GAMES:
+        sorted_games = sorted(GAMES.items(), key=lambda item: item[1].get("last_activity", 0))
+        for gid, _ in sorted_games[:len(GAMES) - MAX_GAMES]:
+            GAMES.pop(gid, None)
+
+def normalize_player_name(name, default="An"):
+    """Chỉ chấp nhận 1 trong 2 tên: An hoặc Thành"""
+    if not name:
+        return default
+    n = str(name).strip().lower()
+    if "thành" in n or "thanh" in n:
+        return "Thành"
+    return "An"
 
 def generate_room_code():
     chars = string.ascii_uppercase + string.digits
@@ -128,6 +143,13 @@ def format_game_state(game, caller_player_id):
         "my_player_id": caller_player_id
     }
 
+@app.after_request
+def add_cache_headers(response):
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -137,7 +159,7 @@ def create_game():
     clean_old_games()
     data = request.json or {}
     mode = data.get("mode", "single") # 'single', 'pass_play', 'online'
-    p1_name = (data.get("player_name") or "").strip() or "Người chơi 1"
+    p1_name = normalize_player_name(data.get("player_name"), default="An")
 
     p1_id = uuid.uuid4().hex
     game_id = generate_room_code() if mode == "online" else uuid.uuid4().hex[:8]
@@ -146,7 +168,8 @@ def create_game():
     status = "playing"
 
     if mode == "pass_play":
-        p2_name = (data.get("p2_name") or "").strip() or "Người chơi 2"
+        # Người còn lại tự động là An hoặc Thành
+        p2_name = "Thành" if p1_name == "An" else "An"
         p2_id = uuid.uuid4().hex
         players.append({"id": p2_id, "name": p2_name})
     elif mode == "online":
@@ -193,8 +216,12 @@ def join_game():
     if len(game["players"]) >= 2:
         return jsonify({"error": "Phòng chơi đã đủ 2 người!"}), 400
 
+    p1_name = game["players"][0]["name"]
+    # Người tham gia nhận tên còn lại: An hoặc Thành
+    p2_name = "Thành" if p1_name == "An" else "An"
+
     p2_id = uuid.uuid4().hex
-    game["players"].append({"id": p2_id, "name": player_name})
+    game["players"].append({"id": p2_id, "name": p2_name})
     game["scores"][p2_id] = {}
     game["totals"][p2_id] = compute_totals({})
     game["status"] = "playing"
@@ -294,6 +321,7 @@ def toggle_hold_api(game_id):
 
 @app.route("/api/game/<game_id>/score", methods=["POST"])
 def score(game_id):
+    clean_old_games()
     if game_id not in GAMES:
         return jsonify({"error": "Phòng chơi không tồn tại!"}), 404
 
