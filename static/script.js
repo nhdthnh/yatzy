@@ -344,15 +344,31 @@ function initApp() {
         }
     });
 
-    // Check URL parameters (?room=XYZ)
+    // Check URL parameters (?game=caro&room=XYZ or ?room=XYZ)
     const params = new URLSearchParams(window.location.search);
+    const gameParam = params.get('game');
     const roomParam = params.get('room');
 
     if (roomParam) {
-        modeModal.classList.add('active');
-        showOnlineTab('join');
-        joinRoomCode.value = roomParam.toUpperCase();
+        if (gameParam === 'caro' || gameParam === 'oanquan' || gameParam === 'doanthu') {
+            // Chuyển sang game đó
+            const targetBtn = document.querySelector(`.hub-tab-btn[data-game-target="${gameParam}"]`);
+            if (targetBtn) targetBtn.click();
+            // Mở modal tham gia phòng online của game đó
+            if (typeof HubOnline !== 'undefined') {
+                HubOnline.openModal(gameParam, 'join', roomParam);
+            }
+        } else {
+            // Mặc định là Yatzy
+            modeModal.classList.add('active');
+            showOnlineTab('join');
+            joinRoomCode.value = roomParam.toUpperCase();
+        }
     } else {
+        if (gameParam && (gameParam === 'caro' || gameParam === 'oanquan' || gameParam === 'doanthu')) {
+            const targetBtn = document.querySelector(`.hub-tab-btn[data-game-target="${gameParam}"]`);
+            if (targetBtn) targetBtn.click();
+        }
         // Default start: 2 Players on same device: An vs Thành
         startNewGame('pass_play', 'An', 'Thành');
     }
@@ -461,7 +477,7 @@ function setupEventListeners() {
 
     btnCopyCode.addEventListener('click', () => {
         if (!gameState?.game_id) return;
-        const shareUrl = `${window.location.origin}${window.location.pathname}?room=${gameState.game_id}`;
+        const shareUrl = `${window.location.origin}${window.location.pathname}?game=yatzy&room=${gameState.game_id}`;
         navigator.clipboard.writeText(shareUrl).then(() => {
             btnCopyCode.textContent = '✅ Đã copy!';
             setTimeout(() => { btnCopyCode.textContent = '📋 Copy link'; }, 2000);

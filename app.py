@@ -423,6 +423,461 @@ def restart_game(game_id):
     caller_player_id = (request.json or {}).get("player_id", "")
     return jsonify(format_game_state(game, caller_player_id))
 
+# ==========================================================
+# MULTI-GAME ONLINE HUB (CARO, Ô ĂN QUAN, ĐOÁN CON THÚ)
+# Hỗ trợ 2 người chơi online từ 2 máy khác nhau qua mã phòng
+# ==========================================================
+
+HUB_ROOMS = {}
+
+ANIMALS_DATA = {
+    'orca': {'color': 'black_white', 'home': 'water', 'legs': 'legs_0', 'cover': 'scales_smooth', 'features': ['fins', 'tail'], 'pattern': 'spots'},
+    'camel': {'color': 'brown', 'home': 'land', 'legs': 'legs_4', 'cover': 'fur', 'features': ['ears', 'tail'], 'pattern': 'plain'},
+    'lobster': {'color': 'red', 'home': 'water', 'legs': 'legs_6plus', 'cover': 'shell', 'features': ['tail'], 'pattern': 'plain'},
+    'deer': {'color': 'brown', 'home': 'land', 'legs': 'legs_4', 'cover': 'fur', 'features': ['horns', 'ears', 'tail'], 'pattern': 'spots'},
+    'clownfish': {'color': 'orange', 'home': 'water', 'legs': 'legs_0', 'cover': 'scales_smooth', 'features': ['fins', 'tail'], 'pattern': 'stripes'},
+    'scarlet_ibis': {'color': 'red', 'home': 'land_water', 'legs': 'legs_2', 'cover': 'feathers', 'features': ['tail'], 'pattern': 'plain'},
+    'rhino': {'color': 'gray', 'home': 'land', 'legs': 'legs_4', 'cover': 'scales_smooth', 'features': ['horns', 'ears', 'tail'], 'pattern': 'plain'},
+    'snake': {'color': 'green', 'home': 'land_water', 'legs': 'legs_0', 'cover': 'scales_smooth', 'features': ['tail'], 'pattern': 'stripes'},
+    'pigeon': {'color': 'gray', 'home': 'air', 'legs': 'legs_2', 'cover': 'feathers', 'features': ['tail'], 'pattern': 'plain'},
+    'snail': {'color': 'brown', 'home': 'land', 'legs': 'legs_0', 'cover': 'shell', 'features': [], 'pattern': 'plain'},
+    'goldfish': {'color': 'orange', 'home': 'water', 'legs': 'legs_0', 'cover': 'scales_smooth', 'features': ['fins', 'tail'], 'pattern': 'plain'},
+    'walrus': {'color': 'brown', 'home': 'land_water', 'legs': 'legs_0', 'cover': 'scales_smooth', 'features': ['tusks', 'fins'], 'pattern': 'plain'},
+    'giraffe': {'color': 'yellowish', 'home': 'land', 'legs': 'legs_4', 'cover': 'fur', 'features': ['horns', 'ears', 'tail'], 'pattern': 'spots'},
+    'panda': {'color': 'black_white', 'home': 'land', 'legs': 'legs_4', 'cover': 'fur', 'features': ['ears', 'tail'], 'pattern': 'spots'},
+    'tortoise': {'color': 'green', 'home': 'land_water', 'legs': 'legs_4', 'cover': 'shell', 'features': ['tail'], 'pattern': 'plain'},
+    'frog': {'color': 'green', 'home': 'land_water', 'legs': 'legs_4', 'cover': 'scales_smooth', 'features': [], 'pattern': 'plain'},
+    'cow': {'color': 'black_white', 'home': 'land', 'legs': 'legs_4', 'cover': 'fur', 'features': ['horns', 'ears', 'tail'], 'pattern': 'spots'},
+    'shark': {'color': 'gray', 'home': 'water', 'legs': 'legs_0', 'cover': 'scales_smooth', 'features': ['fins', 'tail'], 'pattern': 'plain'},
+    'parrot': {'color': 'yellowish', 'home': 'air', 'legs': 'legs_2', 'cover': 'feathers', 'features': ['tail'], 'pattern': 'plain'},
+    'crab': {'color': 'red', 'home': 'land_water', 'legs': 'legs_6plus', 'cover': 'shell', 'features': [], 'pattern': 'plain'},
+    'tiger': {'color': 'orange', 'home': 'land', 'legs': 'legs_4', 'cover': 'fur', 'features': ['ears', 'tail'], 'pattern': 'stripes'},
+    'hippo': {'color': 'gray', 'home': 'land_water', 'legs': 'legs_4', 'cover': 'scales_smooth', 'features': ['ears', 'tail'], 'pattern': 'plain'},
+    'bongo': {'color': 'brown', 'home': 'land', 'legs': 'legs_4', 'cover': 'fur', 'features': ['horns', 'ears', 'tail'], 'pattern': 'stripes'},
+    'octopus': {'color': 'red', 'home': 'water', 'legs': 'legs_6plus', 'cover': 'scales_smooth', 'features': [], 'pattern': 'plain'},
+    'fox': {'color': 'orange', 'home': 'land', 'legs': 'legs_4', 'cover': 'fur', 'features': ['ears', 'tail'], 'pattern': 'plain'},
+    'crocodile': {'color': 'green', 'home': 'land_water', 'legs': 'legs_4', 'cover': 'scales_smooth', 'features': ['tail'], 'pattern': 'plain'},
+    'zebra': {'color': 'black_white', 'home': 'land', 'legs': 'legs_4', 'cover': 'fur', 'features': ['ears', 'tail'], 'pattern': 'stripes'},
+    'golden_eagle': {'color': 'brown', 'home': 'air', 'legs': 'legs_2', 'cover': 'feathers', 'features': ['tail'], 'pattern': 'plain'},
+    'elephant': {'color': 'gray', 'home': 'land', 'legs': 'legs_4', 'cover': 'scales_smooth', 'features': ['tusks', 'ears', 'tail'], 'pattern': 'plain'},
+    'cheetah': {'color': 'yellowish', 'home': 'land', 'legs': 'legs_4', 'cover': 'fur', 'features': ['ears', 'tail'], 'pattern': 'spots'}
+}
+
+def clean_old_hub_rooms():
+    now = time.time()
+    expired = [rc for rc, r in HUB_ROOMS.items() if now - r.get("last_activity", now) > GAME_TIMEOUT]
+    for rc in expired:
+        HUB_ROOMS.pop(rc, None)
+    if len(HUB_ROOMS) > MAX_GAMES:
+        sorted_rooms = sorted(HUB_ROOMS.items(), key=lambda item: item[1].get("last_activity", 0))
+        for rc, _ in sorted_rooms[:len(HUB_ROOMS) - MAX_GAMES]:
+            HUB_ROOMS.pop(rc, None)
+
+def init_caro_state():
+    return {
+        "board": [[None for _ in range(12)] for _ in range(12)],
+        "current_player_idx": 0,
+        "winner": None,
+        "win_line": [],
+        "last_move": None,
+        "history_count": 0
+    }
+
+def check_caro_win(board, r, c, player):
+    directions = [
+        [(0, 1), (0, -1)],
+        [(1, 0), (-1, 0)],
+        [(1, 1), (-1, -1)],
+        [(1, -1), (-1, 1)]
+    ]
+    for d in directions:
+        cells = [{"r": r, "c": c}]
+        for dr, dc in d:
+            nr, nc = r + dr, c + dc
+            while 0 <= nr < 12 and 0 <= nc < 12 and board[nr][nc] == player:
+                cells.append({"r": nr, "c": nc})
+                nr += dr
+                nc += dc
+        if len(cells) >= 5:
+            return cells
+    return None
+
+def init_oanquan_state():
+    board = []
+    for _ in range(5): board.append({"type": "dan", "count": 5})
+    board.append({"type": "quan", "count": 10, "hasBigQuan": True})
+    for _ in range(5): board.append({"type": "dan", "count": 5})
+    board.append({"type": "quan", "count": 10, "hasBigQuan": True})
+    return {
+        "board": board,
+        "scores": [0, 0],
+        "current_player_idx": 0,
+        "winner": None,
+        "last_action": None
+    }
+
+def execute_oanquan_move_server(state, current_idx, start_idx, direction):
+    board = state["board"]
+    scores = state["scores"]
+    hand = board[start_idx]["count"]
+    board[start_idx]["count"] = 0
+    curr = start_idx
+
+    while hand > 0:
+        while hand > 0:
+            curr = (curr + direction + 12) % 12
+            board[curr]["count"] += 1
+            hand -= 1
+
+        next_idx = (curr + direction + 12) % 12
+        if board[next_idx]["type"] == "dan" and board[next_idx]["count"] > 0:
+            curr = next_idx
+            hand = board[curr]["count"]
+            board[curr]["count"] = 0
+            continue
+
+        if board[next_idx]["count"] == 0:
+            check_empty = next_idx
+            eat_idx = (check_empty + direction + 12) % 12
+            while board[check_empty]["count"] == 0 and board[eat_idx]["count"] > 0:
+                eaten = board[eat_idx]["count"]
+                board[eat_idx]["count"] = 0
+                board[eat_idx]["hasBigQuan"] = False
+                scores[current_idx] += eaten
+                check_empty = (eat_idx + direction + 12) % 12
+                eat_idx = (check_empty + direction + 12) % 12
+        break
+
+    # Kiểm tra hết quan (hết ván)
+    if board[5]["count"] == 0 and board[11]["count"] == 0:
+        for i in range(0, 5):
+            scores[0] += board[i]["count"]
+            board[i]["count"] = 0
+        for i in range(6, 11):
+            scores[1] += board[i]["count"]
+            board[i]["count"] = 0
+        state["winner"] = 0 if scores[0] > scores[1] else (1 if scores[1] > scores[0] else "tie")
+        return
+
+    # Chuyển lượt
+    next_player = 1 - current_idx
+    state["current_player_idx"] = next_player
+
+    # Kiểm tra rải sỏi nếu 5 ô hết quân
+    start = 0 if next_player == 0 else 6
+    end = 4 if next_player == 0 else 10
+    total = sum(board[i]["count"] for i in range(start, end + 1))
+    if total == 0:
+        if scores[next_player] >= 5:
+            scores[next_player] -= 5
+            for i in range(start, end + 1):
+                board[i]["count"] = 1
+        else:
+            state["winner"] = current_idx # Xử thua do hết quân
+
+def init_doanthu_state():
+    return {
+        "secrets": [None, None], # p0, p1
+        "flipped": [[], []],
+        "current_player_idx": 0,
+        "last_answer": None,
+        "winner": None
+    }
+
+def format_hub_room_state(room, caller_player_id):
+    players = room["players"]
+    caller_idx = 0 if (players and players[0]["id"] == caller_player_id) else (1 if len(players) > 1 and players[1]["id"] == caller_player_id else -1)
+    caller_name = players[caller_idx]["name"] if caller_idx in (0, 1) else ""
+    opp_idx = 1 - caller_idx if caller_idx in (0, 1) else -1
+    opp_name = players[opp_idx]["name"] if opp_idx in (0, 1) and opp_idx < len(players) else ""
+    current_idx = room["state"].get("current_player_idx", 0)
+
+    can_act = False
+    if room["status"] == "playing":
+        can_act = (caller_idx == current_idx)
+    elif room["status"] == "choosing_secret" and room["game_type"] == "doanthu":
+        can_act = (caller_idx != -1 and room["state"]["secrets"][caller_idx] is None)
+
+    # Dữ liệu an toàn không để lộ bí mật con thú của đối thủ
+    state_copy = dict(room["state"])
+    if room["game_type"] == "doanthu":
+        my_secret = room["state"]["secrets"][caller_idx] if caller_idx in (0, 1) else None
+        state_copy["my_secret"] = my_secret
+        state_copy["has_chosen_secret"] = (my_secret is not None)
+        state_copy["my_flipped"] = room["state"]["flipped"][caller_idx] if caller_idx in (0, 1) else []
+        state_copy["opp_flipped_count"] = len(room["state"]["flipped"][opp_idx]) if opp_idx in (0, 1) else 0
+        # Giấu bí mật đối thủ cho đến khi game over
+        if room["status"] != "game_over":
+            state_copy["secrets"] = ["***" if s else None for s in room["state"]["secrets"]]
+
+    return {
+        "room_code": room["room_code"],
+        "game_type": room["game_type"],
+        "status": room["status"],
+        "players": players,
+        "caller_idx": caller_idx,
+        "caller_name": caller_name,
+        "opp_name": opp_name,
+        "current_player_idx": current_idx,
+        "can_act": can_act,
+        "state": state_copy
+    }
+
+@app.route("/api/hub/create", methods=["POST"])
+def hub_create():
+    clean_old_hub_rooms()
+    data = request.json or {}
+    game_type = data.get("game_type", "caro")
+    p1_name = normalize_player_name(data.get("player_name"), default="An")
+    p1_id = uuid.uuid4().hex
+
+    room_code = generate_room_code()
+    while room_code in HUB_ROOMS or room_code in GAMES:
+        room_code = generate_room_code()
+
+    if game_type == "caro":
+        init_state = init_caro_state()
+        init_status = "waiting"
+    elif game_type == "oanquan":
+        init_state = init_oanquan_state()
+        init_status = "waiting"
+    elif game_type == "doanthu":
+        init_state = init_doanthu_state()
+        init_status = "waiting"
+    else:
+        init_state = {}
+        init_status = "waiting"
+
+    room = {
+        "room_code": room_code,
+        "game_type": game_type,
+        "status": init_status,
+        "players": [{"id": p1_id, "name": p1_name}],
+        "state": init_state,
+        "last_activity": time.time()
+    }
+
+    HUB_ROOMS[room_code] = room
+    return jsonify({
+        "success": True,
+        "room_code": room_code,
+        "player_id": p1_id,
+        "player_name": p1_name,
+        "game_type": game_type,
+        "room": format_hub_room_state(room, p1_id)
+    })
+
+@app.route("/api/hub/join", methods=["POST"])
+def hub_join():
+    clean_old_hub_rooms()
+    data = request.json or {}
+    room_code = (data.get("room_code") or "").strip().upper()
+
+    if room_code not in HUB_ROOMS:
+        return jsonify({"error": "Không tìm thấy phòng chơi với mã này!"}), 404
+
+    room = HUB_ROOMS[room_code]
+    if len(room["players"]) >= 2:
+        return jsonify({"error": "Phòng chơi đã đủ 2 người!"}), 400
+
+    p1_name = room["players"][0]["name"]
+    p2_name = "Thành" if p1_name == "An" else "An"
+    p2_id = uuid.uuid4().hex
+
+    room["players"].append({"id": p2_id, "name": p2_name})
+    room["status"] = "choosing_secret" if room["game_type"] == "doanthu" else "playing"
+    room["last_activity"] = time.time()
+
+    return jsonify({
+        "success": True,
+        "room_code": room_code,
+        "player_id": p2_id,
+        "player_name": p2_name,
+        "game_type": room["game_type"],
+        "room": format_hub_room_state(room, p2_id)
+    })
+
+@app.route("/api/hub/<room_code>/state", methods=["GET"])
+def hub_get_state(room_code):
+    if room_code not in HUB_ROOMS:
+        return jsonify({"error": "Phòng không tồn tại"}), 404
+
+    room = HUB_ROOMS[room_code]
+    room["last_activity"] = time.time()
+    caller_player_id = request.args.get("player_id", "")
+    return jsonify(format_hub_room_state(room, caller_player_id))
+
+@app.route("/api/hub/<room_code>/action", methods=["POST"])
+def hub_action(room_code):
+    if room_code not in HUB_ROOMS:
+        return jsonify({"error": "Phòng không tồn tại"}), 404
+
+    room = HUB_ROOMS[room_code]
+    room["last_activity"] = time.time()
+    data = request.json or {}
+    caller_player_id = data.get("player_id", "")
+    action = data.get("action", "")
+
+    players = room["players"]
+    caller_idx = 0 if (players and players[0]["id"] == caller_player_id) else (1 if len(players) > 1 and players[1]["id"] == caller_player_id else -1)
+    if caller_idx == -1:
+        return jsonify({"error": "Người chơi không hợp lệ!"}), 403
+
+    gt = room["game_type"]
+    state = room["state"]
+
+    # 1. CARO ACTION
+    if gt == "caro":
+        if room["status"] != "playing":
+            return jsonify({"error": "Ván đấu chưa sẵn sàng!"}), 400
+        if caller_idx != state["current_player_idx"]:
+            return jsonify({"error": "Chưa đến lượt của bạn!"}), 403
+
+        r = int(data.get("r", data.get("row", -1)))
+        c = int(data.get("c", data.get("col", -1)))
+        if r < 0 or r >= 12 or c < 0 or c >= 12 or state["board"][r][c] is not None:
+            return jsonify({"error": "Ô không hợp lệ!"}), 400
+
+        sym = "X" if caller_idx == 0 else "O"
+        state["board"][r][c] = sym
+        state["last_move"] = {"r": r, "c": c, "player": sym}
+        state["history_count"] += 1
+
+        win_cells = check_caro_win(state["board"], r, c, sym)
+        if win_cells:
+            state["winner"] = caller_idx
+            state["win_line"] = win_cells
+            room["status"] = "game_over"
+        elif state["history_count"] >= 144:
+            state["winner"] = "tie"
+            room["status"] = "game_over"
+        else:
+            state["current_player_idx"] = 1 - caller_idx
+
+    # 2. Ô ĂN QUAN ACTION
+    elif gt == "oanquan":
+        if room["status"] != "playing":
+            return jsonify({"error": "Ván đấu chưa sẵn sàng!"}), 400
+        if caller_idx != state["current_player_idx"]:
+            return jsonify({"error": "Chưa đến lượt của bạn!"}), 403
+
+        start_cell = int(data.get("start_cell", -1))
+        direction = int(data.get("direction", 1))
+
+        # Kiểm tra hợp lệ ô của người chơi
+        if caller_idx == 0 and not (0 <= start_cell <= 4 and state["board"][start_cell]["count"] > 0):
+            return jsonify({"error": "Ô không hợp lệ!"}), 400
+        if caller_idx == 1 and not (6 <= start_cell <= 10 and state["board"][start_cell]["count"] > 0):
+            return jsonify({"error": "Ô không hợp lệ!"}), 400
+
+        execute_oanquan_move_server(state, caller_idx, start_cell, direction)
+        if state["winner"] is not None:
+            room["status"] = "game_over"
+
+    # 3. ĐOÁN CON THÚ ACTION
+    elif gt == "doanthu":
+        if action == "set_secret":
+            animal_id = data.get("animal_id")
+            if animal_id not in ANIMALS_DATA:
+                return jsonify({"error": "Con thú không hợp lệ!"}), 400
+            state["secrets"][caller_idx] = animal_id
+            # Nếu cả 2 đều đã chọn con thú bí mật -> chuyển sang playing!
+            if state["secrets"][0] and state["secrets"][1]:
+                room["status"] = "playing"
+
+        elif action == "ask":
+            if room["status"] != "playing":
+                return jsonify({"error": "Chưa bắt đầu lượt hỏi!"}), 400
+            if caller_idx != state["current_player_idx"]:
+                return jsonify({"error": "Chưa đến lượt hỏi của bạn!"}), 403
+
+            cat = data.get("category")
+            qid = data.get("question_id")
+            qlabel = data.get("question_label", "")
+
+            opp_idx = 1 - caller_idx
+            opp_animal_id = state["secrets"][opp_idx]
+            opp_animal = ANIMALS_DATA.get(opp_animal_id, {})
+
+            is_match = False
+            if cat == "color": is_match = (opp_animal.get("color") == qid)
+            elif cat == "home": is_match = (opp_animal.get("home") == qid)
+            elif cat == "legs": is_match = (opp_animal.get("legs") == qid)
+            elif cat == "cover": is_match = (opp_animal.get("cover") == qid)
+            elif cat == "features": is_match = (qid in opp_animal.get("features", []))
+            elif cat == "pattern": is_match = (opp_animal.get("pattern") == qid)
+
+            state["last_answer"] = {
+                "asker_idx": caller_idx,
+                "category": cat,
+                "question_id": qid,
+                "question_label": qlabel,
+                "is_match": is_match
+            }
+            # Đổi lượt hỏi sang đối thủ
+            state["current_player_idx"] = opp_idx
+
+        elif action == "guess":
+            if room["status"] != "playing":
+                return jsonify({"error": "Chưa trong trận đấu!"}), 400
+            if caller_idx != state["current_player_idx"]:
+                return jsonify({"error": "Chưa đến lượt của bạn!"}), 403
+
+            animal_id = data.get("animal_id")
+            opp_idx = 1 - caller_idx
+            opp_animal_id = state["secrets"][opp_idx]
+
+            if animal_id == opp_animal_id:
+                state["winner"] = caller_idx
+                room["status"] = "game_over"
+            else:
+                # Đoán sai -> Đổi lượt
+                state["current_player_idx"] = opp_idx
+                state["last_answer"] = {
+                    "asker_idx": caller_idx,
+                    "is_guess_fail": True,
+                    "guessed_animal": animal_id
+                }
+
+        elif action == "toggle_flip":
+            animal_id = data.get("animal_id")
+            my_flipped = state["flipped"][caller_idx]
+            if animal_id in my_flipped:
+                my_flipped.remove(animal_id)
+            else:
+                my_flipped.append(animal_id)
+
+    return jsonify({
+        "success": True,
+        "room": format_hub_room_state(room, caller_player_id)
+    })
+
+@app.route("/api/hub/<room_code>/restart", methods=["POST"])
+def hub_restart(room_code):
+    if room_code not in HUB_ROOMS:
+        return jsonify({"error": "Phòng không tồn tại"}), 404
+
+    room = HUB_ROOMS[room_code]
+    data = request.json or {}
+    caller_player_id = data.get("player_id", "")
+    gt = room["game_type"]
+
+    if gt == "caro":
+        room["state"] = init_caro_state()
+        room["status"] = "playing"
+    elif gt == "oanquan":
+        room["state"] = init_oanquan_state()
+        room["status"] = "playing"
+    elif gt == "doanthu":
+        room["state"] = init_doanthu_state()
+        room["status"] = "choosing_secret"
+
+    room["last_activity"] = time.time()
+    return jsonify({
+        "success": True,
+        "room": format_hub_room_state(room, caller_player_id)
+    })
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)

@@ -1965,3 +1965,15 @@ body.light-theme {
 .q-emoji {
     font-size: 1.15rem;
 }
+
+.dt-secret-prompt {
+    background: #eef2ff;
+    border: 1.5px solid #c7d2fe;
+    color: #3730a3;
+    padding: 8px 12px;
+    margin: 8px 12px 4px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    text-align: center;
+    font-weight: 600;
+}

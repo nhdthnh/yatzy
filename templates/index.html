@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#fbf8f3">
     <title>Kho Game 2 Người - An & Thành</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20261115_hub_v1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20261115_hub_online_v2">
 </head>
 <body class="light-theme">
     <div class="game-wrapper">
@@ -218,11 +218,29 @@
                     </div>
                 </div>
                 <div class="oa-mode-controls">
-                    <button class="btn-mini active" id="btn-oa-mode-pvp">👥 2 Người</button>
+                    <button class="btn-mini active" id="btn-oa-mode-pvp">👥 Cùng máy</button>
                     <button class="btn-mini" id="btn-oa-mode-pve">🤖 Đấu Máy</button>
+                    <button class="btn-mini" id="btn-oa-mode-online">🌐 Online</button>
                     <button class="btn-mini" id="btn-oa-reset">🔄 Ván mới</button>
                 </div>
             </header>
+
+            <!-- Online Room Bar (Ô Ăn Quan) -->
+            <div class="room-bar hidden" id="oa-room-bar">
+                <div class="room-code-group">
+                    <span>PHÒNG:</span>
+                    <strong class="room-code-tag" id="oa-display-room-code">------</strong>
+                    <button class="btn-copy-code" id="btn-oa-copy-code">📋 Copy link</button>
+                </div>
+                <div class="room-status" id="oa-display-room-status">
+                    <span class="status-dot pulsing"></span> Chờ đối thủ...
+                </div>
+            </div>
+
+            <!-- Waiting Opponent Alert (Ô Ăn Quan Online) -->
+            <div class="opponent-alert hidden" id="oa-opponent-alert">
+                <span class="spinner-small"></span> Đang chờ đối thủ rải sỏi...
+            </div>
 
             <div class="oa-winner-banner hidden" id="oa-winner-banner"></div>
 
@@ -293,12 +311,30 @@
                 </div>
                 <div class="caro-status-line" id="caro-turn-name">Lượt: An (X)</div>
                 <div class="caro-controls">
-                    <button class="btn-mini active" id="btn-caro-mode-pvp">👥 2 Người</button>
+                    <button class="btn-mini active" id="btn-caro-mode-pvp">👥 Cùng máy</button>
                     <button class="btn-mini" id="btn-caro-mode-pve">🤖 Đấu Máy</button>
+                    <button class="btn-mini" id="btn-caro-mode-online">🌐 Online</button>
                     <button class="btn-mini" id="btn-caro-undo">↩️ Đi lại</button>
                     <button class="btn-mini" id="btn-caro-reset">🔄 Ván mới</button>
                 </div>
             </header>
+
+            <!-- Online Room Bar (Cờ Caro) -->
+            <div class="room-bar hidden" id="caro-room-bar">
+                <div class="room-code-group">
+                    <span>PHÒNG:</span>
+                    <strong class="room-code-tag" id="caro-display-room-code">------</strong>
+                    <button class="btn-copy-code" id="btn-caro-copy-code">📋 Copy link</button>
+                </div>
+                <div class="room-status" id="caro-display-room-status">
+                    <span class="status-dot pulsing"></span> Chờ đối thủ...
+                </div>
+            </div>
+
+            <!-- Waiting Opponent Alert (Caro Online) -->
+            <div class="opponent-alert hidden" id="caro-opponent-alert">
+                <span class="spinner-small"></span> Đang chờ đối thủ đánh cờ...
+            </div>
 
             <div class="caro-winner-banner hidden" id="caro-winner-banner"></div>
 
@@ -319,11 +355,35 @@
                 <div class="dt-top-row">
                     <div class="dt-secret-box" id="dt-my-secret-animal"></div>
                     <div class="dt-stats">
+                        <button class="btn-mini active" id="btn-dt-mode-pve">🤖 Đấu Máy</button>
+                        <button class="btn-mini" id="btn-dt-mode-online">🌐 Online</button>
                         <span class="dt-badge-rem" id="dt-remaining-count">30/30 con</span>
                         <button class="btn-mini" id="btn-dt-reset">🔄 Ván mới</button>
                     </div>
                 </div>
             </header>
+
+            <!-- Online Room Bar (Đoán Con Thú) -->
+            <div class="room-bar hidden" id="dt-room-bar">
+                <div class="room-code-group">
+                    <span>PHÒNG:</span>
+                    <strong class="room-code-tag" id="dt-display-room-code">------</strong>
+                    <button class="btn-copy-code" id="btn-dt-copy-code">📋 Copy link</button>
+                </div>
+                <div class="room-status" id="dt-display-room-status">
+                    <span class="status-dot pulsing"></span> Chờ đối thủ...
+                </div>
+            </div>
+
+            <!-- Secret Choosing Prompt (Online) -->
+            <div class="dt-secret-prompt hidden" id="dt-secret-prompt">
+                👉 <strong>Chạm 1 con thú trên bảng</strong> để chọn làm Con Thú Bí Mật của bạn!
+            </div>
+
+            <!-- Waiting Opponent Alert (Đoán Thú Online) -->
+            <div class="opponent-alert hidden" id="dt-opponent-alert">
+                <span class="spinner-small"></span> Đang chờ đối thủ...
+            </div>
 
             <div class="dt-answer-banner hidden" id="dt-answer-banner"></div>
             <div class="dt-winner-banner hidden" id="dt-winner-banner"></div>
@@ -494,12 +554,44 @@
         </div>
     </div>
 
+    <!-- Unified Multi-Game Online Modal (Caro, Ô Ăn Quan, Đoán Thú) -->
+    <div class="modal-overlay" id="hub-online-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="hub-modal-title">🌐 Chơi Online 2 Người</h3>
+                <button class="modal-close" id="btn-close-hub-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="tabs-nav">
+                    <button class="tab-btn active" id="tab-hub-create">Tạo Phòng</button>
+                    <button class="tab-btn" id="tab-hub-join">Nhập Mã Phòng</button>
+                </div>
+
+                <div id="hub-create-view">
+                    <div class="name-select-label">Bạn muốn đóng vai:</div>
+                    <div class="name-btn-group mb-2">
+                        <button type="button" class="btn-name-toggle active" data-hub-name="An">👩 An (Nữ)</button>
+                        <button type="button" class="btn-name-toggle" data-hub-name="Thành">👦 Thành (Nam)</button>
+                    </div>
+                    <button class="btn-sub-action mt-2" id="btn-hub-confirm-create">Tạo Phòng & Lấy Mã 🚀</button>
+                </div>
+
+                <div id="hub-join-view" class="hidden">
+                    <div class="name-select-label">Nhập mã phòng bạn bè gửi:</div>
+                    <input type="text" id="hub-join-room-code" placeholder="MÃ PHÒNG (VD: CR77)" maxlength="6" class="full-input code-input">
+                    <button class="btn-sub-action mt-2" id="btn-hub-confirm-join">Tham Gia Ngay 🎮</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <canvas id="confetti-canvas"></canvas>
 
     <!-- Scripts: Games modules & Master Controller -->
-    <script src="{{ url_for('static', filename='games/caro.js') }}?v=1"></script>
-    <script src="{{ url_for('static', filename='games/oanquan.js') }}?v=1"></script>
-    <script src="{{ url_for('static', filename='games/doanthu.js') }}?v=1"></script>
-    <script src="{{ url_for('static', filename='script.js') }}?v=20261115_hub_v1"></script>
+    <script src="{{ url_for('static', filename='games/hub_online.js') }}?v=20261115_hub_online_v2"></script>
+    <script src="{{ url_for('static', filename='games/caro.js') }}?v=20261115_hub_online_v2"></script>
+    <script src="{{ url_for('static', filename='games/oanquan.js') }}?v=20261115_hub_online_v2"></script>
+    <script src="{{ url_for('static', filename='games/doanthu.js') }}?v=20261115_hub_online_v2"></script>
+    <script src="{{ url_for('static', filename='script.js') }}?v=20261115_hub_online_v2"></script>
 </body>
 </html>

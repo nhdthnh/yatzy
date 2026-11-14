@@ -118,7 +118,11 @@ const DoanThuGame = (function() {
         bindEvents();
     }
 
-    function resetGame() {
+    function resetGame(forceLocal = false) {
+        if (gameMode === 'online' && !forceLocal) {
+            HubOnline.restartGame();
+            return;
+        }
         flippedAnimals.clear();
         questionsAsked = 0;
         currentPlayer = 1;
@@ -164,6 +168,26 @@ const DoanThuGame = (function() {
             // Chạm vào thẻ để lật úp hoặc đoán
             card.addEventListener('pointerdown', (e) => {
                 e.preventDefault();
+                if (gameMode === 'online') {
+                    const room = HubOnline.getRoom();
+                    if (!room) return;
+                    if (room.status === 'choosing_secret') {
+                        if (!room.state.has_chosen_secret) {
+                            playSound('click');
+                            p1SecretAnimal = animal;
+                            renderSecretAnimal();
+                            HubOnline.sendAction({ action: 'set_secret', animal_id: animal.id });
+                        }
+                        return;
+                    }
+                    if (isGuessingMode) {
+                        confirmFinalGuess(animal);
+                        return;
+                    }
+                    toggleFlipAnimal(animal.id);
+                    return;
+                }
+
                 if (isGuessingMode) {
                     confirmFinalGuess(animal);
                 } else {
@@ -181,6 +205,9 @@ const DoanThuGame = (function() {
             flippedAnimals.delete(id);
         } else {
             flippedAnimals.add(id);
+        }
+        if (gameMode === 'online') {
+            HubOnline.sendAction({ action: 'toggle_flip', animal_id: id });
         }
         renderAnimalGrid();
         updateRemainingCount();
@@ -253,6 +280,18 @@ const DoanThuGame = (function() {
         hideQuestionModal();
         questionsAsked++;
         playSound('click');
+
+        if (gameMode === 'online') {
+            const room = HubOnline.getRoom();
+            if (!room || room.status !== 'playing' || !room.can_act) return;
+            HubOnline.sendAction({
+                action: 'ask',
+                category: categoryKey,
+                question_id: questionId,
+                question_label: questionLabel
+            });
+            return;
+        }
 
         const targetAnimal = p2SecretAnimal;
         let isMatch = false;
@@ -357,6 +396,13 @@ const DoanThuGame = (function() {
             btnGuess.textContent = '🎯 ĐOÁN CON THÚ';
         }
 
+        if (gameMode === 'online') {
+            const room = HubOnline.getRoom();
+            if (!room || room.status !== 'playing' || !room.can_act) return;
+            HubOnline.sendAction({ action: 'guess', animal_id: animal.id });
+            return;
+        }
+
         const isCorrect = (animal.id === p2SecretAnimal.id);
         if (isCorrect) {
             playSound('celebrate');
@@ -384,6 +430,86 @@ const DoanThuGame = (function() {
         updateRemainingCount();
     }
 
+    function onServerState(room) {
+        if (room.game_type !== 'doanthu') return;
+        gameMode = 'online';
+
+        const modePvE = document.getElementById('btn-dt-mode-pve');
+        const modeOnline = document.getElementById('btn-dt-mode-online');
+        if (modeOnline) modeOnline.classList.add('active');
+        if (modePvE) modePvE.classList.remove('active');
+
+        const promptEl = document.getElementById('dt-secret-prompt');
+
+        if (room.status === 'choosing_secret') {
+            if (promptEl) {
+                if (!room.state.has_chosen_secret) promptEl.classList.remove('hidden');
+                else promptEl.classList.add('hidden');
+            }
+            if (room.state.my_secret) {
+                p1SecretAnimal = ANIMALS.find(a => a.id === room.state.my_secret) || null;
+                renderSecretAnimal();
+            }
+        } else if (room.status === 'playing') {
+            if (promptEl) promptEl.classList.add('hidden');
+            if (room.state.my_secret) {
+                p1SecretAnimal = ANIMALS.find(a => a.id === room.state.my_secret) || null;
+                renderSecretAnimal();
+            }
+
+            // Đồng bộ thẻ lật
+            if (Array.isArray(room.state.my_flipped)) {
+                flippedAnimals = new Set(room.state.my_flipped);
+                renderAnimalGrid();
+                updateRemainingCount();
+            }
+
+            // Trạng thái câu trả lời gần nhất
+            if (room.state.last_answer) {
+                const la = room.state.last_answer;
+                const askerName = room.players[la.asker_idx]?.name || (la.asker_idx === 0 ? 'An' : 'Thành');
+                const banner = document.getElementById('dt-answer-banner');
+                if (banner) {
+                    if (la.is_guess) {
+                        const guessedObj = ANIMALS.find(a => a.id === la.guessed_animal);
+                        const guessedName = guessedObj ? guessedObj.name : la.guessed_animal;
+                        if (la.is_correct) {
+                            banner.className = 'dt-answer-banner match-yes';
+                            banner.innerHTML = `<div class="ans-head">🎯 <strong>ĐOÁN ĐÚNG!</strong></div><div class="ans-desc">${askerName} đã đoán trúng: <strong>${guessedName}</strong>!</div>`;
+                        } else {
+                            banner.className = 'dt-answer-banner match-no';
+                            banner.innerHTML = `<div class="ans-head">❌ <strong>ĐOÁN SAI!</strong></div><div class="ans-desc">${askerName} đoán là "${guessedName}" nhưng không phải!</div>`;
+                        }
+                    } else {
+                        const matchIcon = la.is_match ? '✅' : '❌';
+                        const matchClass = la.is_match ? 'match-yes' : 'match-no';
+                        const matchWord = la.is_match ? 'CÓ' : 'KHÔNG CÓ';
+                        banner.className = `dt-answer-banner ${matchClass}`;
+                        banner.innerHTML = `<div class="ans-head">${matchIcon} <strong>${askerName} hỏi "${la.question_label}":</strong></div><div class="ans-desc">Đối thủ trả lời: <strong>${matchWord}</strong>!</div>`;
+                    }
+                    banner.classList.remove('hidden');
+                }
+            }
+
+            const hintEl = document.getElementById('dt-hint-text');
+            if (hintEl) {
+                if (room.can_act) {
+                    hintEl.innerHTML = '🔥 <strong>Đến lượt bạn!</strong> Chọn 1 danh mục câu hỏi ở dưới hoặc Bấm Đoán:';
+                } else {
+                    const opp = room.opp_name || 'đối thủ';
+                    hintEl.innerHTML = `⏳ Đang chờ <strong>${opp}</strong> đặt câu hỏi...`;
+                }
+            }
+        } else if (room.status === 'game_over') {
+            if (promptEl) promptEl.classList.add('hidden');
+            if (room.state.winner !== null) {
+                const winName = room.players[room.state.winner]?.name || (room.state.winner === 0 ? 'An' : 'Thành');
+                showWinner(`${winName.toUpperCase()} ĐÃ CHIẾN THẮNG! 🏆`);
+                playSound('celebrate');
+            }
+        }
+    }
+
     function bindEvents() {
         // Nút các danh mục câu hỏi
         document.querySelectorAll('[data-cat]').forEach(btn => {
@@ -399,11 +525,31 @@ const DoanThuGame = (function() {
         if (btnGuess) btnGuess.addEventListener('click', toggleGuessMode);
 
         const btnReset = document.getElementById('btn-dt-reset');
-        if (btnReset) btnReset.addEventListener('click', resetGame);
+        if (btnReset) btnReset.addEventListener('click', () => resetGame());
+
+        const modePvE = document.getElementById('btn-dt-mode-pve');
+        const modeOnline = document.getElementById('btn-dt-mode-online');
+
+        if (modeOnline) {
+            modeOnline.addEventListener('click', () => {
+                HubOnline.openModal('doanthu');
+            });
+        }
+
+        if (modePvE) {
+            modePvE.addEventListener('click', () => {
+                HubOnline.leaveOnlineMode();
+                modePvE.classList.add('active');
+                if (modeOnline) modeOnline.classList.remove('active');
+                gameMode = 'pve';
+                resetGame(true);
+            });
+        }
     }
 
     return {
         init,
-        reset: resetGame
+        reset: resetGame,
+        onServerState
     };
 })();

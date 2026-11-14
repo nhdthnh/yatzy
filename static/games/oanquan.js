@@ -22,7 +22,11 @@ const OAnQuanGame = (function() {
         bindEvents();
     }
 
-    function resetGame() {
+    function resetGame(forceLocal = false) {
+        if (gameMode === 'online' && !forceLocal) {
+            HubOnline.restartGame();
+            return;
+        }
         board = [];
         // 5 ô dân An: 5 viên/ô
         for (let i = 0; i <= 4; i++) board.push({ type: 'dan', count: 5 });
@@ -96,9 +100,17 @@ const OAnQuanGame = (function() {
         const isP2Cell = (idx >= 6 && idx <= 10);
 
         if (!gameOver && !isAnimating) {
-            if ((currentPlayer === 1 && isP1Cell && count > 0) ||
-                (currentPlayer === 2 && isP2Cell && count > 0 && gameMode === 'pvp')) {
-                el.classList.add('selectable');
+            if (gameMode === 'online') {
+                const room = HubOnline.getRoom();
+                if (room && room.status === 'playing' && room.can_act) {
+                    if (room.caller_idx === 0 && isP1Cell && count > 0) el.classList.add('selectable');
+                    if (room.caller_idx === 1 && isP2Cell && count > 0) el.classList.add('selectable');
+                }
+            } else {
+                if ((currentPlayer === 1 && isP1Cell && count > 0) ||
+                    (currentPlayer === 2 && isP2Cell && count > 0 && gameMode === 'pvp')) {
+                    el.classList.add('selectable');
+                }
             }
         }
         if (selectedCell === idx) {
@@ -108,6 +120,21 @@ const OAnQuanGame = (function() {
 
     function selectCell(idx) {
         if (isAnimating || gameOver) return;
+
+        if (gameMode === 'online') {
+            const room = HubOnline.getRoom();
+            if (!room || room.status !== 'playing' || !room.can_act) return;
+            const callerIdx = room.caller_idx;
+            const isValid = (callerIdx === 0 && idx >= 0 && idx <= 4 && board[idx].count > 0) ||
+                            (callerIdx === 1 && idx >= 6 && idx <= 10 && board[idx].count > 0);
+            if (!isValid) return;
+            playSound('click');
+            selectedCell = idx;
+            renderBoard();
+            showDirections(idx);
+            return;
+        }
+
         if (gameMode === 'pve' && currentPlayer === 2) return;
 
         const isP1Turn = (currentPlayer === 1);
@@ -149,6 +176,15 @@ const OAnQuanGame = (function() {
     function chooseDirection(dir) {
         hideDirections();
         if (selectedCell === null || isAnimating) return;
+
+        if (gameMode === 'online') {
+            playSound('click');
+            HubOnline.sendAction({ action: 'move', start_cell: selectedCell, direction: dir });
+            selectedCell = null;
+            renderBoard();
+            return;
+        }
+
         executeMove(selectedCell, dir);
     }
 
@@ -377,6 +413,40 @@ const OAnQuanGame = (function() {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
+    function onServerState(room) {
+        if (room.game_type !== 'oanquan') return;
+        gameMode = 'online';
+
+        const modePvP = document.getElementById('btn-oa-mode-pvp');
+        const modePvE = document.getElementById('btn-oa-mode-pve');
+        const modeOnline = document.getElementById('btn-oa-mode-online');
+        if (modeOnline) modeOnline.classList.add('active');
+        if (modePvP) modePvP.classList.remove('active');
+        if (modePvE) modePvE.classList.remove('active');
+
+        const st = room.state;
+        board = st.board || [];
+        scores = { 1: st.scores[0], 2: st.scores[1] };
+        currentPlayer = st.current_player_idx + 1;
+
+        renderBoard();
+        updateDisplay();
+
+        if (room.status === 'game_over') {
+            gameOver = true;
+            if (st.winner === 'tie') {
+                showWinner('HÒA NHAU! 🤝');
+            } else if (st.winner !== null) {
+                const winName = room.players[st.winner]?.name || (st.winner === 0 ? 'An' : 'Thành');
+                showWinner(`${winName.toUpperCase()} CHIẾN THẮNG VỚI ${scores[st.winner + 1]} ĐIỂM! 🏆`);
+                playSound('celebrate');
+            }
+        } else {
+            gameOver = false;
+            hideWinner();
+        }
+    }
+
     function bindEvents() {
         // Click vào các ô dân
         for (let i = 0; i <= 4; i++) {
@@ -395,32 +465,44 @@ const OAnQuanGame = (function() {
         }
 
         const btnReset = document.getElementById('btn-oa-reset');
-        if (btnReset) btnReset.addEventListener('click', resetGame);
+        if (btnReset) btnReset.addEventListener('click', () => resetGame());
 
         const modePvP = document.getElementById('btn-oa-mode-pvp');
         const modePvE = document.getElementById('btn-oa-mode-pve');
+        const modeOnline = document.getElementById('btn-oa-mode-online');
+
+        if (modeOnline) {
+            modeOnline.addEventListener('click', () => {
+                HubOnline.openModal('oanquan');
+            });
+        }
 
         if (modePvP) {
             modePvP.addEventListener('click', () => {
+                HubOnline.leaveOnlineMode();
                 modePvP.classList.add('active');
                 if (modePvE) modePvE.classList.remove('active');
+                if (modeOnline) modeOnline.classList.remove('active');
                 gameMode = 'pvp';
-                resetGame();
+                resetGame(true);
             });
         }
 
         if (modePvE) {
             modePvE.addEventListener('click', () => {
+                HubOnline.leaveOnlineMode();
                 modePvE.classList.add('active');
                 if (modePvP) modePvP.classList.remove('active');
+                if (modeOnline) modeOnline.classList.remove('active');
                 gameMode = 'pve';
-                resetGame();
+                resetGame(true);
             });
         }
     }
 
     return {
         init,
-        reset: resetGame
+        reset: resetGame,
+        onServerState
     };
 })();

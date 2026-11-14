@@ -18,7 +18,11 @@ const CaroGame = (function() {
         bindEvents();
     }
 
-    function resetGame() {
+    function resetGame(forceLocal = false) {
+        if (gameMode === 'online' && !forceLocal) {
+            HubOnline.restartGame();
+            return;
+        }
         board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
         currentPlayer = 'X';
         gameOver = false;
@@ -60,6 +64,15 @@ const CaroGame = (function() {
 
     function makeMove(r, c) {
         if (gameOver || board[r][c]) return;
+
+        // Nếu là Online mode
+        if (gameMode === 'online') {
+            const room = HubOnline.getRoom();
+            if (!room || room.status !== 'playing' || !room.can_act) return;
+            playSound('click');
+            HubOnline.sendAction({ action: 'move', r, c });
+            return;
+        }
 
         board[r][c] = currentPlayer;
         history.push({ r, c, player: currentPlayer });
@@ -212,6 +225,7 @@ const CaroGame = (function() {
     }
 
     function undoMove() {
+        if (gameMode === 'online') return; // Không thể đi lại trong đấu Online
         if (history.length === 0 || gameOver) return;
         const last = history.pop();
         board[last.r][last.c] = null;
@@ -259,37 +273,91 @@ const CaroGame = (function() {
         if (winBox) winBox.classList.add('hidden');
     }
 
+    function onServerState(room) {
+        if (room.game_type !== 'caro') return;
+        gameMode = 'online';
+
+        const modePvP = document.getElementById('btn-caro-mode-pvp');
+        const modePvE = document.getElementById('btn-caro-mode-pve');
+        const modeOnline = document.getElementById('btn-caro-mode-online');
+        if (modeOnline) modeOnline.classList.add('active');
+        if (modePvP) modePvP.classList.remove('active');
+        if (modePvE) modePvE.classList.remove('active');
+
+        const st = room.state;
+        board = st.board || [];
+        p1Name = room.players[0]?.name || 'An';
+        p2Name = room.players[1]?.name || 'Thành';
+        currentPlayer = (st.current_player_idx === 0) ? 'X' : 'O';
+
+        renderBoard();
+
+        if (st.last_move) {
+            const lastCell = document.querySelector(`.caro-cell[data-row="${st.last_move.r}"][data-col="${st.last_move.c}"]`);
+            if (lastCell) lastCell.classList.add('last-move');
+        }
+
+        if (room.status === 'game_over') {
+            gameOver = true;
+            if (st.winner === 'tie') {
+                showWinner('HÒA CỜ! 🤝');
+            } else if (st.winner !== null) {
+                const winPlayerName = room.players[st.winner]?.name || (st.winner === 0 ? 'An' : 'Thành');
+                showWinner(`${winPlayerName.toUpperCase()} CHIẾN THẮNG! 🏆`);
+                if (st.win_line) highlightWinningCells(st.win_line);
+                playSound('celebrate');
+            }
+        } else {
+            gameOver = false;
+            hideWinner();
+        }
+
+        updateTurnDisplay();
+    }
+
     function bindEvents() {
         const btnReset = document.getElementById('btn-caro-reset');
-        if (btnReset) btnReset.addEventListener('click', resetGame);
+        if (btnReset) btnReset.addEventListener('click', () => resetGame());
 
         const btnUndo = document.getElementById('btn-caro-undo');
         if (btnUndo) btnUndo.addEventListener('click', undoMove);
 
         const modePvP = document.getElementById('btn-caro-mode-pvp');
         const modePvE = document.getElementById('btn-caro-mode-pve');
+        const modeOnline = document.getElementById('btn-caro-mode-online');
+
+        if (modeOnline) {
+            modeOnline.addEventListener('click', () => {
+                HubOnline.openModal('caro');
+            });
+        }
 
         if (modePvP) {
             modePvP.addEventListener('click', () => {
+                HubOnline.leaveOnlineMode();
                 modePvP.classList.add('active');
                 if (modePvE) modePvE.classList.remove('active');
+                if (modeOnline) modeOnline.classList.remove('active');
                 gameMode = 'pvp';
-                resetGame();
+                resetGame(true);
             });
         }
 
         if (modePvE) {
             modePvE.addEventListener('click', () => {
+                HubOnline.leaveOnlineMode();
                 modePvE.classList.add('active');
                 if (modePvP) modePvP.classList.remove('active');
+                if (modeOnline) modeOnline.classList.remove('active');
                 gameMode = 'pve';
-                resetGame();
+                resetGame(true);
             });
         }
     }
 
     return {
         init,
-        reset: resetGame
+        reset: resetGame,
+        onServerState
     };
 })();
