@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yatzy Master - Game Cờ Xúc Xắc 1 & 2 Người Chơi</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <span class="dice-icon">🎲</span>
+                <div>
+                    <h1>YATZY <span>MASTER</span></h1>
+                    <span class="mode-badge" id="current-mode-badge">Đang tải...</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="btn-sound" class="btn-icon" title="Bật/Tắt Âm thanh">🔊</button>
+                <button id="btn-change-mode" class="btn-secondary">🎮 Chọn Chế Độ</button>
+                <button id="btn-rules" class="btn-secondary">📖 Luật chơi</button>
+                <button id="btn-restart-game" class="btn-primary">🔄 Ván mới</button>
+            </div>
+        </header>
+
+        <!-- Online Room Info Bar (Hidden by default) -->
+        <div class="room-bar hidden" id="room-bar">
+            <div class="room-info">
+                <span>MÃ PHÒNG:</span>
+                <strong class="room-code-badge" id="display-room-code">------</strong>
+                <button class="btn-copy-code" id="btn-copy-code" title="Sao chép link mời bạn bè">📋 Sao chép link</button>
+            </div>
+            <div class="room-status" id="display-room-status">
+                <span class="status-dot pulsing"></span> Đang chờ đối thủ tham gia...
+            </div>
+        </div>
+
+        <!-- Main Game Area -->
+        <main class="game-layout">
+            <!-- Left Panel: Dice Board & Turn Banner -->
+            <section class="board-panel">
+                <!-- Turn Banner -->
+                <div class="turn-banner" id="turn-banner">
+                    <div class="turn-avatar" id="turn-avatar">🎲</div>
+                    <div class="turn-details">
+                        <div class="turn-player-name" id="turn-player-name">Lượt của Người chơi 1</div>
+                        <div class="turn-round-info">Vòng <span id="round-number">1</span>/13 &bull; Lượt đổ còn lại: <strong id="rolls-left-display">3</strong>/3</div>
+                    </div>
+                </div>
+
+                <!-- Opponent Waiting Alert -->
+                <div class="opponent-waiting-alert hidden" id="opponent-waiting-alert">
+                    <div class="spinner"></div>
+                    <span>Đang chờ đối thủ thao tác... Xúc xắc sẽ cập nhật tự động!</span>
+                </div>
+
+                <!-- 5 Dice Container -->
+                <div class="dice-container" id="dice-container">
+                    <!-- 5 Dice rendered by JS -->
+                </div>
+
+                <div class="hold-guide" id="hold-guide">
+                    <small>💡 Chạm hoặc click vào xúc xắc để <strong>Giữ lại (Hold)</strong> trước khi đổ tiếp</small>
+                </div>
+
+                <!-- Action Controls -->
+                <div class="board-controls">
+                    <button id="btn-roll" class="btn-action">
+                        <span class="btn-icon-spin">🎲</span>
+                        <span id="roll-btn-text">ĐỔ XÚC XẮC</span>
+                    </button>
+                </div>
+
+                <!-- Status Hint -->
+                <div class="turn-hint" id="turn-hint">Nhấn nút "ĐỔ XÚC XẮC" để bắt đầu lượt!</div>
+            </section>
+
+            <!-- Right Panel: Scorecard Table (Supports 1 and 2 Players) -->
+            <section class="scorecard-panel">
+                <div class="scorecard-card">
+                    <div class="scorecard-header">
+                        <h2>BẢNG GHI ĐIỂM</h2>
+                        <span class="tag" id="scorecard-hint">Chọn ô trống để chốt điểm</span>
+                    </div>
+
+                    <!-- Upper Section -->
+                    <div class="section-title">PHẦN TRÊN (UPPER SECTION)</div>
+                    <table class="score-table">
+                        <thead>
+                            <tr>
+                                <th>Mục tiêu</th>
+                                <th>Quy tắc</th>
+                                <th class="text-right p-col p1-col" id="th-p1">Người chơi 1</th>
+                                <th class="text-right p-col p2-col hidden" id="th-p2">Người chơi 2</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="score-row" data-category="ones">
+                                <td><strong>Số 1 (Ones)</strong></td>
+                                <td>Tổng các mặt 1</td>
+                                <td class="score-cell p1-cell text-right" id="score-ones-p1">-</td>
+                                <td class="score-cell p2-cell text-right hidden" id="score-ones-p2">-</td>
+                            </tr>
+                            <tr class="score-row" data-category="twos">
+                                <td><strong>Số 2 (Twos)</strong></td>
+                                <td>Tổng các mặt 2</td>
+                                <td class="score-cell p1-cell text-right" id="score-twos-p1">-</td>
+                                <td class="score-cell p2-cell text-right hidden" id="score-twos-p2">-</td>
+                            </tr>
+                            <tr class="score-row" data-category="threes">
+                                <td><strong>Số 3 (Threes)</strong></td>
+                                <td>Tổng các mặt 3</td>
+                                <td class="score-cell p1-cell text-right" id="score-threes-p1">-</td>
+                                <td class="score-cell p2-cell text-right hidden" id="score-threes-p2">-</td>
+                            </tr>
+                            <tr class="score-row" data-category="fours">
+                                <td><strong>Số 4 (Fours)</strong></td>
+                                <td>Tổng các mặt 4</td>
+                                <td class="score-cell p1-cell text-right" id="score-fours-p1">-</td>
+                                <td class="score-cell p2-cell text-right hidden" id="score-fours-p2">-</td>
+                            </tr>
+                            <tr class="score-row" data-category="fives">
+                                <td><strong>Số 5 (Fives)</strong></td>
+                                <td>Tổng các mặt 5</td>
+                                <td class="score-cell p1-cell text-right" id="score-fives-p1">-</td>
+                                <td class="score-cell p2-cell text-right hidden" id="score-fives-p2">-</td>
+                            </tr>
+                            <tr class="score-row" data-category="sixes">
+                                <td><strong>Số 6 (Sixes)</strong></td>
+                                <td>Tổng các mặt 6</td>
+                                <td class="score-cell p1-cell text-right" id="score-sixes-p1">-</td>
+                                <td class="score-cell p2-cell text-right hidden" id="score-sixes-p2">-</td>
+                            </tr>
+                            <tr class="summary-row">
+                                <td colspan="2">Tổng phần trên (≥ 63 được thưởng)</td>
+                                <td class="text-right font-bold p1-cell" id="subtotal-p1">0 / 63</td>
+                                <td class="text-right font-bold p2-cell hidden" id="subtotal-p2">0 / 63</td>
+                            </tr>
+                            <tr class="summary-row bonus-row">
+                                <td colspan="2">Thưởng thêm (Bonus +35)</td>
+                                <td class="text-right font-bold text-accent p1-cell" id="bonus-p1">+0</td>
+                                <td class="text-right font-bold text-accent p2-cell hidden" id="bonus-p2">+0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Lower Section -->
+                    <div class="section-title mt-4">PHẦN DƯỚI (LOWER SECTION)</div>
+                    <table class="score-table">
+                        <thead>
+                            <tr>
+                                <th>Mục tiêu</th>
+                                <th>Quy tắc</th>
+                                <th class="text-right p-col p1-col" id="th-p1-lower">Người chơi 1</th>
+                                <th class="text-right p-col p2-col hidden" id="th-p2-lower">Người chơi 2</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="score-row" data-category="three_of_a_kind">
+                                <td><strong>Bộ 3 Giống Nhau</strong></td>
+                                <td>Ít nhất 3 con giống nhau (Tổng 5 con)</td>
+                                <td class="score-cell p1-cell text-right" id="score-three_of_a_kind-p1">-</td>
+                                <td class="score-cell p2-cell text-right hidden" id="score-three_of_a_kind-p2">-</td>
+                            </tr>
+                            <tr class="score-row" data-category="four_of_a_kind">
+                                <td><strong>Bộ 4 Giống Nhau</strong></td>
+                                <td>Ít nhất 4 con giống nhau (Tổng 5 con)</td>
+                                <td class="score-cell p1-cell text-right" id="score-four_of_a_kind-p1">-</td>
+                                <td class="score-cell p2-cell text-right hidden" id="score-four_of_a_kind-p2">-</td>
+                            </tr>
+                            <tr class="score-row" data-category="full_house">
+                                <td><strong>Cù Lũ (Full House)</strong></td>
+                                <td>Bộ 3 + Bộ 2 (Cố định 25đ)</td>
+                                <td class="score-cell p1-cell text-right" id="score-full_house-p1">-</td>
+                                <td class="score-cell p2-cell text-right hidden" id="score-full_house-p2">-</td>
+                            </tr>
+                            <tr class="score-row" data-category="small_straight">
+                                <td><strong>Sảnh Nhỏ (4 số tiếp)</strong></td>
+                                <td>Dãy 4 số liên tiếp (Cố định 30đ)</td>
+                                <td class="score-cell p1-cell text-right" id="score-small_straight-p1">-</td>
+                                <td class="score-cell p2-cell text-right hidden" id="score-small_straight-p2">-</td>
+                            </tr>
+                            <tr class="score-row" data-category="large_straight">
+                                <td><strong>Sảnh Lớn (5 số tiếp)</strong></td>
+                                <td>Dãy 5 số liên tiếp (Cố định 40đ)</td>
+                                <td class="score-cell p1-cell text-right" id="score-large_straight-p1">-</td>
+                                <td class="score-cell p2-cell text-right hidden" id="score-large_straight-p2">-</td>
+                            </tr>
+                            <tr class="score-row highlight-yatzy" data-category="yatzy">
+                                <td><strong>⭐ YATZY (5 số bằng nhau)</strong></td>
+                                <td>5 con xúc xắc giống nhau (50đ)</td>
+                                <td class="score-cell p1-cell text-right" id="score-yatzy-p1">-</td>
+                                <td class="score-cell p2-cell text-right hidden" id="score-yatzy-p2">-</td>
+                            </tr>
+                            <tr class="score-row" data-category="chance">
+                                <td><strong>Cơ Hội (Chance)</strong></td>
+                                <td>Tổng điểm cả 5 xúc xắc</td>
+                                <td class="score-cell p1-cell text-right" id="score-chance-p1">-</td>
+                                <td class="score-cell p2-cell text-right hidden" id="score-chance-p2">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Grand Total Banner -->
+                    <div class="grand-total-container" id="grand-total-container">
+                        <div class="total-box p1-total-box">
+                            <span class="total-player-label" id="p1-name-total">Người chơi 1</span>
+                            <span class="total-score" id="grand-total-p1">0</span>
+                        </div>
+                        <div class="total-box p2-total-box hidden" id="p2-total-box">
+                            <span class="total-player-label" id="p2-name-total">Người chơi 2</span>
+                            <span class="total-score" id="grand-total-p2">0</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Mode Selector Modal -->
+    <div class="modal-overlay" id="mode-modal">
+        <div class="modal-box mode-box">
+            <div class="modal-header">
+                <h3>🎮 Chọn Chế Độ Chơi</h3>
+                <button class="modal-close" id="btn-close-mode">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="mode-options-grid">
+                    <!-- Option 1: Single Player -->
+                    <div class="mode-card" data-mode="single">
+                        <div class="mode-icon">👤</div>
+                        <h4>1 Người Chơi</h4>
+                        <p>Tập luyện một mình, săn điểm kỷ lục cá nhân.</p>
+                        <button class="btn-primary btn-sm">Chơi Ngay</button>
+                    </div>
+
+                    <!-- Option 2: Pass & Play -->
+                    <div class="mode-card featured-mode" data-mode="pass_play">
+                        <div class="mode-icon">👥</div>
+                        <h4>2 Người Cùng Máy</h4>
+                        <p>2 người lần lượt thay phiên đổ xúc xắc trên cùng 1 máy tính / điện thoại.</p>
+                        <button class="btn-primary btn-sm">Bắt Đầu</button>
+                    </div>
+
+                    <!-- Option 3: Online Room -->
+                    <div class="mode-card" data-mode="online">
+                        <div class="mode-icon">🌐</div>
+                        <h4>2 Người Online</h4>
+                        <p>Tạo phòng hoặc nhập mã để so tài qua 2 thiết bị khác nhau qua mạng.</p>
+                        <button class="btn-secondary btn-sm">Vào Phòng</button>
+                    </div>
+                </div>
+
+                <!-- Form for Pass & Play -->
+                <div class="sub-form hidden" id="pass-play-form">
+                    <hr>
+                    <h5>Tên Người Chơi:</h5>
+                    <div class="input-group">
+                        <input type="text" id="pass-p1-name" placeholder="Người chơi 1" value="Người chơi 1">
+                        <input type="text" id="pass-p2-name" placeholder="Người chơi 2" value="Người chơi 2">
+                    </div>
+                    <button class="btn-primary btn-block mt-3" id="btn-start-pass-play">Bắt Đầu Trận Đấu ⚔️</button>
+                </div>
+
+                <!-- Form for Online -->
+                <div class="sub-form hidden" id="online-form">
+                    <hr>
+                    <div class="online-tabs">
+                        <button class="tab-btn active" id="tab-create-room">Tạo Phòng Mới</button>
+                        <button class="tab-btn" id="tab-join-room">Nhập Mã Phòng</button>
+                    </div>
+
+                    <div id="create-room-view">
+                        <div class="input-group mt-3">
+                            <label>Tên của bạn:</label>
+                            <input type="text" id="create-player-name" placeholder="Ví dụ: Hoàng" value="Hoàng">
+                        </div>
+                        <button class="btn-primary btn-block mt-3" id="btn-confirm-create-room">Tạo Phòng & Lấy Mã 🚀</button>
+                    </div>
+
+                    <div id="join-room-view" class="hidden">
+                        <div class="input-group mt-3">
+                            <label>Tên của bạn:</label>
+                            <input type="text" id="join-player-name" placeholder="Ví dụ: Tuấn" value="Tuấn">
+                        </div>
+                        <div class="input-group mt-2">
+                            <label>Mã phòng (5 ký tự):</label>
+                            <input type="text" id="join-room-code" placeholder="VD: YTZ42" maxlength="6" style="text-transform: uppercase; font-weight: bold; letter-spacing: 2px;">
+                        </div>
+                        <button class="btn-primary btn-block mt-3" id="btn-confirm-join-room">Tham Gia Phòng Ngay 🎮</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rules Modal -->
+    <div class="modal-overlay" id="rules-modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>📖 Luật chơi Yatzy (Yahtzee)</h3>
+                <button class="modal-close" id="btn-close-rules">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Mục tiêu:</strong> Đạt tổng điểm cao hơn đối thủ trong 13 vòng chơi xúc xắc.</p>
+                <ul>
+                    <li>Mỗi vòng người chơi có tối đa <strong>3 lần đổ</strong> xúc xắc.</li>
+                    <li>Sau lần 1 và 2, có thể bấm chọn <strong>Giữ (Hold)</strong> xúc xắc mong muốn và chỉ đổ lại các con còn lại.</li>
+                    <li>Sau khi đổ xong, người chơi <strong>bắt buộc phải chọn 1 ô điểm</strong> tương ứng với cột của mình để kết thúc lượt.</li>
+                    <li><strong>Thưởng Phần Trên:</strong> Nếu tổng điểm các ô từ 1 đến 6 đạt từ <strong>63 điểm</strong> trở lên, bạn được thưởng thêm <strong>+35 điểm</strong>!</li>
+                    <li><strong>Yatzy:</strong> Đổ ra cả 5 con xúc xắc cùng một số sẽ được ngay <strong>50 điểm</strong>.</li>
+                    <li>Sau 13 vòng, người chơi có tổng điểm cao nhất sẽ chiến thắng!</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" id="btn-rules-ok">Đã hiểu, vào chơi ngay!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over / Victory Modal -->
+    <div class="modal-overlay" id="game-over-modal">
+        <div class="modal-box celebration-box">
+            <div class="celebration-icon" id="winner-icon">🏆</div>
+            <h2 id="winner-title">KẾT QUẢ VÁN ĐẤU</h2>
+            <p id="winner-subtitle">Trận đấu Yatzy đã hoàn thành trọn vẹn 13 vòng.</p>
+            
+            <div class="final-score-vs-card" id="final-score-vs-card">
+                <!-- Injected by JS -->
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-primary btn-large" id="btn-play-again">Chơi lại ván mới 🔄</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Canvas Confetti -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
