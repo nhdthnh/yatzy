@@ -199,6 +199,8 @@ function setupEventListeners() {
     // Mode Selection Cards
     document.querySelectorAll('.mode-card').forEach(card => {
         card.addEventListener('click', () => {
+            document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('active-selected'));
+            card.classList.add('active-selected');
             const mode = card.dataset.mode;
             if (mode === 'single') {
                 modeModal.classList.remove('active');
