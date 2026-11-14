@@ -4,234 +4,365 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#fbf8f3">
-    <title>Yatzy Master - Game Cờ Xúc Xắc</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20261115_light_v5">
+    <title>Kho Game 2 Người - An & Thành</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20261115_hub_v1">
 </head>
 <body class="light-theme">
     <div class="game-wrapper">
-        <!-- Top Mini Navigation -->
-        <header class="top-nav">
-            <div class="nav-brand">
-                <span class="brand-icon">🎲</span>
-                <span class="brand-name">YATZY</span>
-                <span class="mode-tag" id="current-mode-badge">Đang tải...</span>
-            </div>
-            <div class="nav-controls">
-                <button id="btn-sound" class="btn-nav-icon" title="Bật/Tắt Âm thanh" aria-label="Âm thanh">🔊</button>
-                <button id="btn-change-mode" class="btn-nav-icon" title="Chọn Chế Độ & Tên" aria-label="Chế độ">🎮</button>
-                <button id="btn-rules" class="btn-nav-icon" title="Luật chơi" aria-label="Luật chơi">📖</button>
-                <button id="btn-restart-game" class="btn-nav-icon" title="Ván mới" aria-label="Ván mới">🔄</button>
-            </div>
-        </header>
+        <!-- ==========================================================
+             TOP GAME HUB SWITCHER BAR (Chuyển đổi tức thì 4 trò chơi)
+             ========================================================== -->
+        <nav class="hub-nav-bar">
+            <button class="hub-tab-btn active" data-game-target="yatzy">🎲 Yatzy</button>
+            <button class="hub-tab-btn" data-game-target="oanquan">🌾 Ô Ăn Quan</button>
+            <button class="hub-tab-btn" data-game-target="caro">⭕ Cờ Caro</button>
+            <button class="hub-tab-btn" data-game-target="doanthu">🦁 Đoán Thú</button>
+        </nav>
 
-        <!-- Online Room Bar (Hidden by default) -->
-        <div class="room-bar hidden" id="room-bar">
-            <div class="room-code-group">
-                <span>PHÒNG:</span>
-                <strong class="room-code-tag" id="display-room-code">------</strong>
-                <button class="btn-copy-code" id="btn-copy-code">📋 Copy link</button>
-            </div>
-            <div class="room-status" id="display-room-status">
-                <span class="status-dot pulsing"></span> Chờ đối thủ...
-            </div>
-        </div>
-
-        <!-- Waiting Opponent Alert (Online) -->
-        <div class="opponent-alert hidden" id="opponent-waiting-alert">
-            <span class="spinner-small"></span> Đang chờ đối thủ thao tác...
-        </div>
-
-        <!-- Top Players Scoreboard (Light Banner like reference image) -->
-        <section class="players-banner" id="players-banner">
-            <div class="player-pill active" id="pill-p1">
-                <div class="player-avatar avatar-female" id="avatar-p1">👩</div>
-                <div class="player-meta">
-                    <span class="player-score" id="grand-total-p1">0</span>
-                    <span class="player-name" id="name-p1">An</span>
+        <!-- ==========================================================
+             TRÒ CHƠI 1: YATZY MASTER (CỜ XÚC XẮC)
+             ========================================================== -->
+        <section id="game-view-yatzy" class="game-view active">
+            <!-- Top Mini Navigation -->
+            <header class="top-nav">
+                <div class="nav-brand">
+                    <span class="brand-icon">🎲</span>
+                    <span class="brand-name">YATZY</span>
+                    <span class="mode-tag" id="current-mode-badge">Đang tải...</span>
                 </div>
-                <span class="turn-dot"></span>
-            </div>
-            <div class="player-pill" id="pill-p2">
-                <div class="player-avatar avatar-male" id="avatar-p2">👦</div>
-                <div class="player-meta">
-                    <span class="player-score" id="grand-total-p2">0</span>
-                    <span class="player-name" id="name-p2">Thành</span>
+                <div class="nav-controls">
+                    <button id="btn-sound" class="btn-nav-icon" title="Bật/Tắt Âm thanh" aria-label="Âm thanh">🔊</button>
+                    <button id="btn-change-mode" class="btn-nav-icon" title="Chọn Chế Độ & Tên" aria-label="Chế độ">🎮</button>
+                    <button id="btn-rules" class="btn-nav-icon" title="Luật chơi" aria-label="Luật chơi">📖</button>
+                    <button id="btn-restart-game" class="btn-nav-icon" title="Ván mới" aria-label="Ván mới">🔄</button>
                 </div>
-                <span class="turn-dot"></span>
+            </header>
+
+            <!-- Online Room Bar (Hidden by default) -->
+            <div class="room-bar hidden" id="room-bar">
+                <div class="room-code-group">
+                    <span>PHÒNG:</span>
+                    <strong class="room-code-tag" id="display-room-code">------</strong>
+                    <button class="btn-copy-code" id="btn-copy-code">📋 Copy link</button>
+                </div>
+                <div class="room-status" id="display-room-status">
+                    <span class="status-dot pulsing"></span> Chờ đối thủ...
+                </div>
+            </div>
+
+            <!-- Waiting Opponent Alert (Online) -->
+            <div class="opponent-alert hidden" id="opponent-waiting-alert">
+                <span class="spinner-small"></span> Đang chờ đối thủ thao tác...
+            </div>
+
+            <!-- Top Players Scoreboard (Light Banner) -->
+            <section class="players-banner" id="players-banner">
+                <div class="player-pill active" id="pill-p1">
+                    <div class="player-avatar avatar-female" id="avatar-p1">👩</div>
+                    <div class="player-meta">
+                        <span class="player-score" id="grand-total-p1">0</span>
+                        <span class="player-name" id="name-p1">An</span>
+                    </div>
+                    <span class="turn-dot"></span>
+                </div>
+                <div class="player-pill" id="pill-p2">
+                    <div class="player-avatar avatar-male" id="avatar-p2">👦</div>
+                    <div class="player-meta">
+                        <span class="player-score" id="grand-total-p2">0</span>
+                        <span class="player-name" id="name-p2">Thành</span>
+                    </div>
+                    <span class="turn-dot"></span>
+                </div>
+            </section>
+
+            <!-- 2-Column Scorecard -->
+            <main class="scorecard-sheet">
+                <!-- Left Column: Upper Section -->
+                <div class="sheet-column upper-section">
+                    <div class="col-header-row">
+                        <span class="cell-icon-col"></span>
+                        <span class="col-title p1-col-title" id="th-p1">AN</span>
+                        <span class="col-title p2-col-title" id="th-p2">THÀNH</span>
+                    </div>
+
+                    <div class="sheet-row score-row" data-category="ones">
+                        <div class="cat-badge" data-help="ones" title="Xem hướng dẫn"><span class="dot-die-icon die-1"><i class="dot"></i></span></div>
+                        <div class="score-cell p1-cell" id="score-ones-p1"></div>
+                        <div class="score-cell p2-cell" id="score-ones-p2"></div>
+                    </div>
+                    <div class="sheet-row score-row" data-category="twos">
+                        <div class="cat-badge" data-help="twos" title="Xem hướng dẫn"><span class="dot-die-icon die-2"><i class="dot"></i><i class="dot"></i></span></div>
+                        <div class="score-cell p1-cell" id="score-twos-p1"></div>
+                        <div class="score-cell p2-cell" id="score-twos-p2"></div>
+                    </div>
+                    <div class="sheet-row score-row" data-category="threes">
+                        <div class="cat-badge" data-help="threes" title="Xem hướng dẫn"><span class="dot-die-icon die-3"><i class="dot"></i><i class="dot"></i><i class="dot"></i></span></div>
+                        <div class="score-cell p1-cell" id="score-threes-p1"></div>
+                        <div class="score-cell p2-cell" id="score-threes-p2"></div>
+                    </div>
+                    <div class="sheet-row score-row" data-category="fours">
+                        <div class="cat-badge" data-help="fours" title="Xem hướng dẫn"><span class="dot-die-icon die-4"><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></span></div>
+                        <div class="score-cell p1-cell" id="score-fours-p1"></div>
+                        <div class="score-cell p2-cell" id="score-fours-p2"></div>
+                    </div>
+                    <div class="sheet-row score-row" data-category="fives">
+                        <div class="cat-badge" data-help="fives" title="Xem hướng dẫn"><span class="dot-die-icon die-5"><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></span></div>
+                        <div class="score-cell p1-cell" id="score-fives-p1"></div>
+                        <div class="score-cell p2-cell" id="score-fives-p2"></div>
+                    </div>
+                    <div class="sheet-row score-row" data-category="sixes">
+                        <div class="cat-badge" data-help="sixes" title="Xem hướng dẫn"><span class="dot-die-icon die-6"><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></span></div>
+                        <div class="score-cell p1-cell" id="score-sixes-p1"></div>
+                        <div class="score-cell p2-cell" id="score-sixes-p2"></div>
+                    </div>
+
+                    <div class="sheet-row bonus-row">
+                        <div class="bonus-cat-badge" data-help="bonus" title="Xem hướng dẫn">
+                            <span class="bonus-label">BONUS</span>
+                            <span class="bonus-val-tag">+35</span>
+                        </div>
+                        <div class="bonus-circle-cell p1-bonus" id="bonus-box-p1">
+                            <div class="bonus-circle" id="subtotal-p1">0/63</div>
+                            <span class="bonus-text-earned hidden" id="bonus-p1">+35</span>
+                        </div>
+                        <div class="bonus-circle-cell p2-bonus" id="bonus-box-p2">
+                            <div class="bonus-circle" id="subtotal-p2">0/63</div>
+                            <span class="bonus-text-earned hidden" id="bonus-p2">+35</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Lower Section -->
+                <div class="sheet-column lower-section">
+                    <div class="col-header-row">
+                        <span class="cell-icon-col"></span>
+                        <span class="col-title p1-col-title" id="th-p1-lower">AN</span>
+                        <span class="col-title p2-col-title" id="th-p2-lower">THÀNH</span>
+                    </div>
+
+                    <div class="sheet-row score-row" data-category="three_of_a_kind">
+                        <div class="cat-badge badge-text" data-help="three_of_a_kind" title="Xem hướng dẫn">3x</div>
+                        <div class="score-cell p1-cell" id="score-three_of_a_kind-p1"></div>
+                        <div class="score-cell p2-cell" id="score-three_of_a_kind-p2"></div>
+                    </div>
+                    <div class="sheet-row score-row" data-category="four_of_a_kind">
+                        <div class="cat-badge badge-text" data-help="four_of_a_kind" title="Xem hướng dẫn">4x</div>
+                        <div class="score-cell p1-cell" id="score-four_of_a_kind-p1"></div>
+                        <div class="score-cell p2-cell" id="score-four_of_a_kind-p2"></div>
+                    </div>
+                    <div class="sheet-row score-row" data-category="full_house">
+                        <div class="cat-badge badge-house" data-help="full_house" title="Xem hướng dẫn">🏠</div>
+                        <div class="score-cell p1-cell" id="score-full_house-p1"></div>
+                        <div class="score-cell p2-cell" id="score-full_house-p2"></div>
+                    </div>
+                    <div class="sheet-row score-row" data-category="small_straight">
+                        <div class="cat-badge badge-straight sm" data-help="small_straight" title="Xem hướng dẫn">SMALL</div>
+                        <div class="score-cell p1-cell" id="score-small_straight-p1"></div>
+                        <div class="score-cell p2-cell" id="score-small_straight-p2"></div>
+                    </div>
+                    <div class="sheet-row score-row" data-category="large_straight">
+                        <div class="cat-badge badge-straight lg" data-help="large_straight" title="Xem hướng dẫn">LARGE</div>
+                        <div class="score-cell p1-cell" id="score-large_straight-p1"></div>
+                        <div class="score-cell p2-cell" id="score-large_straight-p2"></div>
+                    </div>
+                    <div class="sheet-row score-row yatzy-row" data-category="yatzy">
+                        <div class="cat-badge badge-yatzy" data-help="yatzy" title="Xem hướng dẫn">YATZY</div>
+                        <div class="score-cell p1-cell" id="score-yatzy-p1"></div>
+                        <div class="score-cell p2-cell" id="score-yatzy-p2"></div>
+                    </div>
+                    <div class="sheet-row score-row" data-category="chance">
+                        <div class="cat-badge badge-chance" data-help="chance" title="Xem hướng dẫn">?</div>
+                        <div class="score-cell p1-cell" id="score-chance-p1"></div>
+                        <div class="score-cell p2-cell" id="score-chance-p2"></div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Wooden Ledge & Dice Shelf -->
+            <section class="wood-shelf">
+                <div class="dice-container" id="dice-container"></div>
+                <div class="shelf-hint" id="hold-guide">Chạm xúc xắc để <strong>Giữ lại</strong></div>
+            </section>
+
+            <!-- Bottom Action Controls -->
+            <footer class="action-footer">
+                <div class="turn-status-line">
+                    <span class="player-indicator" id="turn-player-name">Lượt của An</span>
+                    <span class="sep">&bull;</span>
+                    <span>Vòng <strong id="round-number">1</strong>/13</span>
+                    <span class="sep">&bull;</span>
+                    <span id="rolls-info">Còn <strong id="rolls-left-display">3</strong> lần</span>
+                </div>
+                <button id="btn-roll" class="btn-roll-action">
+                    <span class="btn-dice-icon">🎲</span>
+                    <span id="roll-btn-text">ĐỔ XÚC XẮC</span>
+                </button>
+                <div class="turn-hint-text" id="turn-hint">Nhấn nút "ĐỔ XÚC XẮC" để bắt đầu lượt!</div>
+            </footer>
+        </section>
+
+        <!-- ==========================================================
+             TRÒ CHƠI 2: Ô ĂN QUAN (DÂN GIAN VIỆT NAM)
+             ========================================================== -->
+        <section id="game-view-oanquan" class="game-view hidden">
+            <header class="oa-header">
+                <div class="oa-scores">
+                    <div class="oa-score-card oa-p1">
+                        <span class="avatar-tag">👩 An</span>
+                        <span class="score-num" id="oa-score-p1">0</span>
+                    </div>
+                    <div class="oa-turn-info" id="oa-turn-name">Lượt: 👩 <strong>An</strong></div>
+                    <div class="oa-score-card oa-p2">
+                        <span class="avatar-tag">👦 Thành</span>
+                        <span class="score-num" id="oa-score-p2">0</span>
+                    </div>
+                </div>
+                <div class="oa-mode-controls">
+                    <button class="btn-mini active" id="btn-oa-mode-pvp">👥 2 Người</button>
+                    <button class="btn-mini" id="btn-oa-mode-pve">🤖 Đấu Máy</button>
+                    <button class="btn-mini" id="btn-oa-reset">🔄 Ván mới</button>
+                </div>
+            </header>
+
+            <div class="oa-winner-banner hidden" id="oa-winner-banner"></div>
+
+            <!-- Bàn Cờ Dân Gian Gỗ/Đất nung -->
+            <div class="oa-board-container">
+                <!-- Quan Trái -->
+                <div class="oa-quan-cell left-quan" id="oa-quan-left">
+                    <div class="quan-label">QUAN TRÁI</div>
+                    <div class="stone-count">10</div>
+                    <div class="stones-visual"></div>
+                </div>
+
+                <!-- 10 Ô Dân ở giữa (2 hàng x 5 ô) -->
+                <div class="oa-dan-grid">
+                    <!-- Hàng trên: 5 ô của An (0 đến 4) -->
+                    <div class="oa-dan-row top-row">
+                        <div class="oa-dan-cell" id="oa-cell-0"><span class="cell-num">1</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
+                        <div class="oa-dan-cell" id="oa-cell-1"><span class="cell-num">2</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
+                        <div class="oa-dan-cell" id="oa-cell-2"><span class="cell-num">3</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
+                        <div class="oa-dan-cell" id="oa-cell-3"><span class="cell-num">4</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
+                        <div class="oa-dan-cell" id="oa-cell-4"><span class="cell-num">5</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
+                    </div>
+                    <!-- Hàng dưới: 5 ô của Thành (10 đến 6) -->
+                    <div class="oa-dan-row bottom-row">
+                        <div class="oa-dan-cell" id="oa-cell-10"><span class="cell-num">10</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
+                        <div class="oa-dan-cell" id="oa-cell-9"><span class="cell-num">9</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
+                        <div class="oa-dan-cell" id="oa-cell-8"><span class="cell-num">8</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
+                        <div class="oa-dan-cell" id="oa-cell-7"><span class="cell-num">7</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
+                        <div class="oa-dan-cell" id="oa-cell-6"><span class="cell-num">6</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
+                    </div>
+                </div>
+
+                <!-- Quan Phải -->
+                <div class="oa-quan-cell right-quan" id="oa-quan-right">
+                    <div class="quan-label">QUAN PHẢI</div>
+                    <div class="stone-count">10</div>
+                    <div class="stones-visual"></div>
+                </div>
+            </div>
+
+            <!-- Hướng Rải Quân (Hiện khi chạm chọn 1 ô dân) -->
+            <div class="oa-direction-picker hidden" id="oa-direction-picker">
+                <span class="dir-prompt">Chọn hướng rải quân:</span>
+                <div class="dir-btn-pair">
+                    <button class="btn-dir" id="oa-btn-left">⬅️ Ngược Chiều Kim</button>
+                    <button class="btn-dir" id="oa-btn-right">Thuận Chiều Kim ➡️</button>
+                </div>
+            </div>
+
+            <div class="oa-action-hint" id="oa-hint-text">
+                👉 Chạm vào 1 ô dân bên phía bạn có sỏi để chọn hướng đi.
             </div>
         </section>
 
-        <!-- 2-Column Scorecard (Light, compact, fits on 1 mobile screen) -->
-        <main class="scorecard-sheet">
-            <!-- Left Column: Upper Section (1s to 6s + Bonus) -->
-            <div class="sheet-column upper-section">
-                <div class="col-header-row">
-                    <span class="cell-icon-col"></span>
-                    <span class="col-title p1-col-title" id="th-p1">AN</span>
-                    <span class="col-title p2-col-title" id="th-p2">THÀNH</span>
+        <!-- ==========================================================
+             TRÒ CHƠI 3: CỜ CARO (GOMOKU)
+             ========================================================== -->
+        <section id="game-view-caro" class="game-view hidden">
+            <header class="caro-header">
+                <div class="caro-players">
+                    <div class="turn-pill x-turn" id="caro-turn-badge">
+                        👩 <strong>An (X)</strong>
+                    </div>
+                    <span class="caro-vs">VS</span>
+                    <div class="turn-pill o-turn">
+                        👦 <strong>Thành (O)</strong>
+                    </div>
                 </div>
+                <div class="caro-status-line" id="caro-turn-name">Lượt: An (X)</div>
+                <div class="caro-controls">
+                    <button class="btn-mini active" id="btn-caro-mode-pvp">👥 2 Người</button>
+                    <button class="btn-mini" id="btn-caro-mode-pve">🤖 Đấu Máy</button>
+                    <button class="btn-mini" id="btn-caro-undo">↩️ Đi lại</button>
+                    <button class="btn-mini" id="btn-caro-reset">🔄 Ván mới</button>
+                </div>
+            </header>
 
-                <!-- 1s -->
-                <div class="sheet-row score-row" data-category="ones">
-                    <div class="cat-badge" data-help="ones" title="Bấm xem hướng dẫn">
-                        <span class="dot-die-icon die-1"><i class="dot"></i></span>
-                    </div>
-                    <div class="score-cell p1-cell" id="score-ones-p1"></div>
-                    <div class="score-cell p2-cell" id="score-ones-p2"></div>
-                </div>
+            <div class="caro-winner-banner hidden" id="caro-winner-banner"></div>
 
-                <!-- 2s -->
-                <div class="sheet-row score-row" data-category="twos">
-                    <div class="cat-badge" data-help="twos" title="Bấm xem hướng dẫn">
-                        <span class="dot-die-icon die-2"><i class="dot"></i><i class="dot"></i></span>
-                    </div>
-                    <div class="score-cell p1-cell" id="score-twos-p1"></div>
-                    <div class="score-cell p2-cell" id="score-twos-p2"></div>
-                </div>
-
-                <!-- 3s -->
-                <div class="sheet-row score-row" data-category="threes">
-                    <div class="cat-badge" data-help="threes" title="Bấm xem hướng dẫn">
-                        <span class="dot-die-icon die-3"><i class="dot"></i><i class="dot"></i><i class="dot"></i></span>
-                    </div>
-                    <div class="score-cell p1-cell" id="score-threes-p1"></div>
-                    <div class="score-cell p2-cell" id="score-threes-p2"></div>
-                </div>
-
-                <!-- 4s -->
-                <div class="sheet-row score-row" data-category="fours">
-                    <div class="cat-badge" data-help="fours" title="Bấm xem hướng dẫn">
-                        <span class="dot-die-icon die-4"><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></span>
-                    </div>
-                    <div class="score-cell p1-cell" id="score-fours-p1"></div>
-                    <div class="score-cell p2-cell" id="score-fours-p2"></div>
-                </div>
-
-                <!-- 5s -->
-                <div class="sheet-row score-row" data-category="fives">
-                    <div class="cat-badge" data-help="fives" title="Bấm xem hướng dẫn">
-                        <span class="dot-die-icon die-5"><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></span>
-                    </div>
-                    <div class="score-cell p1-cell" id="score-fives-p1"></div>
-                    <div class="score-cell p2-cell" id="score-fives-p2"></div>
-                </div>
-
-                <!-- 6s -->
-                <div class="sheet-row score-row" data-category="sixes">
-                    <div class="cat-badge" data-help="sixes" title="Bấm xem hướng dẫn">
-                        <span class="dot-die-icon die-6"><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></span>
-                    </div>
-                    <div class="score-cell p1-cell" id="score-sixes-p1"></div>
-                    <div class="score-cell p2-cell" id="score-sixes-p2"></div>
-                </div>
-
-                <!-- Bonus Row (Bonus +35) -->
-                <div class="sheet-row bonus-row">
-                    <div class="bonus-cat-badge" data-help="bonus" title="Bấm xem hướng dẫn">
-                        <span class="bonus-label">BONUS</span>
-                        <span class="bonus-val-tag">+35</span>
-                    </div>
-                    <div class="bonus-circle-cell p1-bonus" id="bonus-box-p1">
-                        <div class="bonus-circle" id="subtotal-p1">0/63</div>
-                        <span class="bonus-text-earned hidden" id="bonus-p1">+35</span>
-                    </div>
-                    <div class="bonus-circle-cell p2-bonus" id="bonus-box-p2">
-                        <div class="bonus-circle" id="subtotal-p2">0/63</div>
-                        <span class="bonus-text-earned hidden" id="bonus-p2">+35</span>
-                    </div>
-                </div>
+            <div class="caro-board-wrapper">
+                <div class="caro-board" id="caro-board"></div>
             </div>
 
-            <!-- Right Column: Lower Section -->
-            <div class="sheet-column lower-section">
-                <div class="col-header-row">
-                    <span class="cell-icon-col"></span>
-                    <span class="col-title p1-col-title" id="th-p1-lower">AN</span>
-                    <span class="col-title p2-col-title" id="th-p2-lower">THÀNH</span>
-                </div>
-
-                <!-- 3 of a kind -->
-                <div class="sheet-row score-row" data-category="three_of_a_kind">
-                    <div class="cat-badge badge-text" data-help="three_of_a_kind" title="Bấm xem hướng dẫn">3x</div>
-                    <div class="score-cell p1-cell" id="score-three_of_a_kind-p1"></div>
-                    <div class="score-cell p2-cell" id="score-three_of_a_kind-p2"></div>
-                </div>
-
-                <!-- 4 of a kind -->
-                <div class="sheet-row score-row" data-category="four_of_a_kind">
-                    <div class="cat-badge badge-text" data-help="four_of_a_kind" title="Bấm xem hướng dẫn">4x</div>
-                    <div class="score-cell p1-cell" id="score-four_of_a_kind-p1"></div>
-                    <div class="score-cell p2-cell" id="score-four_of_a_kind-p2"></div>
-                </div>
-
-                <!-- Full House -->
-                <div class="sheet-row score-row" data-category="full_house">
-                    <div class="cat-badge badge-house" data-help="full_house" title="Bấm xem hướng dẫn">🏠</div>
-                    <div class="score-cell p1-cell" id="score-full_house-p1"></div>
-                    <div class="score-cell p2-cell" id="score-full_house-p2"></div>
-                </div>
-
-                <!-- Small Straight -->
-                <div class="sheet-row score-row" data-category="small_straight">
-                    <div class="cat-badge badge-straight sm" data-help="small_straight" title="Bấm xem hướng dẫn">SMALL</div>
-                    <div class="score-cell p1-cell" id="score-small_straight-p1"></div>
-                    <div class="score-cell p2-cell" id="score-small_straight-p2"></div>
-                </div>
-
-                <!-- Large Straight -->
-                <div class="sheet-row score-row" data-category="large_straight">
-                    <div class="cat-badge badge-straight lg" data-help="large_straight" title="Bấm xem hướng dẫn">LARGE</div>
-                    <div class="score-cell p1-cell" id="score-large_straight-p1"></div>
-                    <div class="score-cell p2-cell" id="score-large_straight-p2"></div>
-                </div>
-
-                <!-- Yatzy -->
-                <div class="sheet-row score-row yatzy-row" data-category="yatzy">
-                    <div class="cat-badge badge-yatzy" data-help="yatzy" title="Bấm xem hướng dẫn">YATZY</div>
-                    <div class="score-cell p1-cell" id="score-yatzy-p1"></div>
-                    <div class="score-cell p2-cell" id="score-yatzy-p2"></div>
-                </div>
-
-                <!-- Chance -->
-                <div class="sheet-row score-row" data-category="chance">
-                    <div class="cat-badge badge-chance" data-help="chance" title="Bấm xem hướng dẫn">?</div>
-                    <div class="score-cell p1-cell" id="score-chance-p1"></div>
-                    <div class="score-cell p2-cell" id="score-chance-p2"></div>
-                </div>
-            </div>
-        </main>
-
-        <!-- Wooden Ledge & Dice Shelf (Light honey wood) -->
-        <section class="wood-shelf">
-            <div class="dice-container" id="dice-container">
-                <!-- 5 dice elements pre-created in JS and mutated in-place -->
-            </div>
-            <div class="shelf-hint" id="hold-guide">
-                Chạm xúc xắc để <strong>Giữ lại</strong>
+            <div class="caro-hint">
+                💡 Đánh đủ 5 ô thẳng hàng (ngang, dọc hoặc chéo) để chiến thắng!
             </div>
         </section>
 
-        <!-- Bottom Action Controls -->
-        <footer class="action-footer">
-            <div class="turn-status-line">
-                <span class="player-indicator" id="turn-player-name">Lượt của An</span>
-                <span class="sep">&bull;</span>
-                <span>Vòng <strong id="round-number">1</strong>/13</span>
-                <span class="sep">&bull;</span>
-                <span id="rolls-info">Còn <strong id="rolls-left-display">3</strong> lần</span>
+        <!-- ==========================================================
+             TRÒ CHƠI 4: ĐOÁN CON THÚ (GUESS WHO - ANIMAL EDITION)
+             ========================================================== -->
+        <section id="game-view-doanthu" class="game-view hidden">
+            <header class="dt-header">
+                <div class="dt-top-row">
+                    <div class="dt-secret-box" id="dt-my-secret-animal"></div>
+                    <div class="dt-stats">
+                        <span class="dt-badge-rem" id="dt-remaining-count">30/30 con</span>
+                        <button class="btn-mini" id="btn-dt-reset">🔄 Ván mới</button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="dt-answer-banner hidden" id="dt-answer-banner"></div>
+            <div class="dt-winner-banner hidden" id="dt-winner-banner"></div>
+
+            <!-- Lưới 30 Con Thú (5x6 theo đúng ảnh mẫu) -->
+            <div class="dt-grid-wrapper">
+                <div class="dt-animal-grid" id="dt-animal-grid"></div>
             </div>
 
-            <!-- Big Vibrant Blue Roll Button -->
-            <button id="btn-roll" class="btn-roll-action">
-                <span class="btn-dice-icon">🎲</span>
-                <span id="roll-btn-text">ĐỔ XÚC XẮC</span>
-            </button>
+            <!-- 6 Danh Mục Câu Hỏi (Ảnh 2 đến 7) & Nút Đoán -->
+            <footer class="dt-actions-panel">
+                <div class="dt-action-hint" id="dt-hint-text">
+                    💡 Chọn 1 danh mục câu hỏi ở dưới để loại trừ dần:
+                </div>
+                <div class="dt-categories-row">
+                    <button class="dt-cat-btn" data-cat="color"><span class="icon">🎨</span><span>MÀU SẮC</span></button>
+                    <button class="dt-cat-btn" data-cat="home"><span class="icon">🏞️</span><span>NƠI SỐNG</span></button>
+                    <button class="dt-cat-btn" data-cat="legs"><span class="icon">🐾</span><span>SỐ CHÂN</span></button>
+                    <button class="dt-cat-btn" data-cat="cover"><span class="icon">🪶</span><span>LỚP PHỦ</span></button>
+                    <button class="dt-cat-btn" data-cat="features"><span class="icon">🦏</span><span>ĐẶC ĐIỂM</span></button>
+                    <button class="dt-cat-btn" data-cat="pattern"><span class="icon">🦓</span><span>HỌA TIẾT</span></button>
+                </div>
+                <button class="btn-dt-guess" id="btn-dt-guess">🎯 ĐOÁN CON THÚ BÍ MẬT</button>
+            </footer>
 
-            <div class="turn-hint-text" id="turn-hint">Nhấn nút "ĐỔ XÚC XẮC" để bắt đầu lượt!</div>
-        </footer>
+            <!-- Popup Menu Câu Hỏi Của Danh Mục -->
+            <div class="dt-modal-overlay hidden" id="dt-question-modal">
+                <div class="dt-modal-card">
+                    <div class="dt-modal-header">
+                        <strong id="dt-modal-title">MÀU SẮC CHÍNH</strong>
+                        <button class="dt-modal-close" id="dt-btn-close-modal">&times;</button>
+                    </div>
+                    <div class="dt-modal-body" id="dt-modal-questions"></div>
+                </div>
+            </div>
+        </section>
     </div>
 
-    <!-- Hidden compatibility elements for total references -->
+    <!-- Hidden compatibility elements for Yatzy totals -->
     <div class="hidden">
         <span id="p1-name-total"></span>
         <span id="p2-name-total"></span>
@@ -241,7 +372,21 @@
         <div id="scorecard-hint"></div>
     </div>
 
-    <!-- Mode & Player Name Selector Modal (Light theme, An or Thành) -->
+    <!-- Category Rule Tooltip Popover (Yatzy) -->
+    <div class="tooltip-backdrop hidden" id="tooltip-backdrop"></div>
+    <div class="category-tooltip-popover hidden" id="category-tooltip">
+        <div class="tooltip-top">
+            <span class="tooltip-badge" id="tooltip-icon">3x</span>
+            <div class="tooltip-titles">
+                <strong id="tooltip-title">Bộ 3 Giống Nhau (3x)</strong>
+                <span class="tooltip-score-info" id="tooltip-score-info">Điểm: Tổng cả 5 xúc xắc</span>
+            </div>
+            <button class="btn-close-tooltip" id="btn-close-tooltip" aria-label="Đóng">&times;</button>
+        </div>
+        <div class="tooltip-desc" id="tooltip-desc">Cần ít nhất 3 con xúc xắc có cùng một số.</div>
+    </div>
+
+    <!-- Mode & Player Name Selector Modal (Yatzy) -->
     <div class="modal-overlay" id="mode-modal">
         <div class="modal-card">
             <div class="modal-header">
@@ -267,7 +412,6 @@
                     </div>
                 </div>
 
-                <!-- Sub-form for Single Player: Pick An or Thành -->
                 <div class="sub-form hidden" id="single-player-form">
                     <hr>
                     <div class="name-select-label">Bạn muốn chơi với tên nào?</div>
@@ -278,7 +422,6 @@
                     <button class="btn-sub-action mt-3" id="btn-start-single">Bắt Đầu Chơi 🚀</button>
                 </div>
 
-                <!-- Sub-form for Pass & Play: Choose who goes first (An or Thành) -->
                 <div class="sub-form" id="pass-play-form">
                     <hr>
                     <div class="name-select-label">Ai sẽ đổ xúc xắc trước?</div>
@@ -293,7 +436,6 @@
                     <button class="btn-sub-action mt-3" id="btn-start-pass-play">Bắt Đầu Trận Đấu ⚔️</button>
                 </div>
 
-                <!-- Sub-form for Online: Create or Join -->
                 <div class="sub-form hidden" id="online-form">
                     <hr>
                     <div class="tabs-nav">
@@ -318,7 +460,7 @@
         </div>
     </div>
 
-    <!-- Rules Modal (Light) -->
+    <!-- Rules Modal (Yatzy) -->
     <div class="modal-overlay" id="rules-modal">
         <div class="modal-card">
             <div class="modal-header">
@@ -331,7 +473,7 @@
                     <li>Mỗi vòng có tối đa <strong>3 lần đổ</strong> xúc xắc.</li>
                     <li>Sau lần 1 và 2, chạm vào xúc xắc để <strong>Giữ lại</strong> những con ưng ý.</li>
                     <li>Sau khi đổ xong, <strong>chọn 1 ô điểm</strong> trên bảng để kết thúc lượt.</li>
-                    <li><strong>Thưởng Phần Trên:</strong> Nếu tổng điểm các ô 1-6 đạt từ <strong>63 điểm</strong> trở lên, bạn nhận thêm <strong>+35 điểm thưởng</strong>!</li>
+                    <li><strong>Thưởng Phần Trên:</strong> Nếu tổng điểm các ô 1-6 đạt từ <strong>63 điểm</strong> trở lên, nhận thêm <strong>+35 điểm thưởng</strong>!</li>
                     <li><strong>Yatzy:</strong> Đổ được 5 con xúc xắc giống hệt nhau nhận ngay <strong>50 điểm</strong>.</li>
                 </ul>
             </div>
@@ -341,7 +483,7 @@
         </div>
     </div>
 
-    <!-- Game Over Modal (Light) -->
+    <!-- Game Over Modal -->
     <div class="modal-overlay" id="game-over-modal">
         <div class="modal-card celebration-card">
             <div class="celebration-icon" id="winner-icon">🏆</div>
@@ -352,22 +494,12 @@
         </div>
     </div>
 
-    <!-- Category Rule Tooltip Popover -->
-    <div class="tooltip-backdrop hidden" id="tooltip-backdrop"></div>
-    <div class="category-tooltip-popover hidden" id="category-tooltip">
-        <div class="tooltip-top">
-            <span class="tooltip-badge" id="tooltip-icon">3x</span>
-            <div class="tooltip-titles">
-                <strong id="tooltip-title">Bộ 3 Giống Nhau (3x)</strong>
-                <span class="tooltip-score-info" id="tooltip-score-info">Điểm: Tổng cả 5 xúc xắc</span>
-            </div>
-            <button class="btn-close-tooltip" id="btn-close-tooltip" aria-label="Đóng">&times;</button>
-        </div>
-        <div class="tooltip-desc" id="tooltip-desc">Cần ít nhất 3 con xúc xắc có cùng một số.</div>
-    </div>
-
     <canvas id="confetti-canvas"></canvas>
 
-    <script src="{{ url_for('static', filename='script.js') }}?v=20261115_light_v5"></script>
+    <!-- Scripts: Games modules & Master Controller -->
+    <script src="{{ url_for('static', filename='games/caro.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='games/oanquan.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='games/doanthu.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='script.js') }}?v=20261115_hub_v1"></script>
 </body>
 </html>

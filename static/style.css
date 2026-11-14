@@ -1189,3 +1189,779 @@ body.light-theme {
 .cat-badge:active, .bonus-cat-badge:active {
     transform: scale(0.92);
 }
+
+/* ==========================================================
+   8. GAME HUB NAVIGATION & MULTI-GAME SWITCHER
+   ========================================================== */
+.hub-nav-bar {
+    display: flex;
+    justify-content: space-between;
+    gap: 5px;
+    background: #f1ebd8;
+    border: 1.5px solid #ded0bd;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.hub-tab-btn {
+    flex: 1;
+    min-width: 82px;
+    padding: 7px 4px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #634327;
+    cursor: pointer;
+    white-space: nowrap;
+    text-align: center;
+    transition: all 0.12s ease;
+}
+
+.hub-tab-btn.active {
+    background: #ffffff;
+    color: #3b190a;
+    font-weight: 900;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+.game-view {
+    display: flex;
+    flex-direction: column;
+}
+
+.game-view.hidden {
+    display: none !important;
+}
+
+.btn-mini {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btn-mini.active {
+    background: var(--accent-blue);
+    color: #ffffff;
+    border-color: var(--accent-blue);
+}
+
+/* ==========================================================
+   9. GAME 2: Ô ĂN QUAN (MANDARIN SQUARE CAPTURING)
+   ========================================================== */
+.oa-header {
+    background: #f7ede0;
+    border: 1.5px solid #e2d2bc;
+    border-radius: 12px;
+    padding: 6px 10px;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.oa-scores {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.oa-score-card {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #ffffff;
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid #dcd0be;
+}
+
+.oa-score-card .avatar-tag {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #5c3a21;
+}
+
+.oa-score-card .score-num {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #3b190a;
+}
+
+.oa-turn-info {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #7a4622;
+}
+
+.oa-mode-controls {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+}
+
+/* Bàn cờ Dân Gian */
+.oa-board-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #ecdcc8 0%, #dfc8af 100%);
+    border: 2px solid #b77945;
+    border-radius: 20px;
+    padding: 8px 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    user-select: none;
+}
+
+/* 2 Ô Quan hình bán nguyệt */
+.oa-quan-cell {
+    width: 58px;
+    height: 120px;
+    background: #e2cbaf;
+    border: 2px solid #a86c39;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.oa-quan-cell.left-quan {
+    border-radius: 60px 0 0 60px;
+}
+
+.oa-quan-cell.right-quan {
+    border-radius: 0 60px 60px 0;
+}
+
+.quan-label {
+    font-size: 0.52rem;
+    font-weight: 900;
+    color: #5c3210;
+    position: absolute;
+    top: 6px;
+}
+
+.oa-quan-cell .stone-count {
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: #3b190a;
+}
+
+.big-quan-stone {
+    font-size: 1.6rem;
+    margin-top: 2px;
+}
+
+/* 10 Ô Dân ở giữa */
+.oa-dan-grid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 0 3px;
+}
+
+.oa-dan-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+}
+
+.oa-dan-cell {
+    background: #f7eee2;
+    border: 1.5px solid #c7ad8e;
+    border-radius: 8px;
+    height: 58px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: transform 0.1s ease, border-color 0.1s ease;
+}
+
+.oa-dan-cell.selectable {
+    background: #ffffff;
+    border-color: var(--accent-green);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+
+.oa-dan-cell.selectable:active,
+.oa-dan-cell.selected {
+    border-color: var(--gold);
+    background: #fef3c7;
+    transform: scale(0.96);
+}
+
+.cell-num {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    font-size: 0.52rem;
+    color: #8c6f55;
+    font-weight: 700;
+}
+
+.oa-dan-cell .stone-count {
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: #3b190a;
+}
+
+.stones-visual {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px;
+    max-width: 38px;
+    margin-top: 1px;
+}
+
+.mini-stone {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #5c3a21;
+}
+
+/* Direction Picker Popup */
+.oa-direction-picker {
+    background: #ffffff;
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    padding: 10px;
+    margin-top: 8px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dir-prompt {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #4a2810;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.dir-btn-pair {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-dir {
+    flex: 1;
+    padding: 8px;
+    background: #3b190a;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.btn-dir:active {
+    opacity: 0.9;
+}
+
+.oa-action-hint {
+    margin-top: 8px;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.oa-winner-banner {
+    background: #ecfdf5;
+    border: 2px solid var(--accent-green);
+    color: #047857;
+    font-weight: 900;
+    font-size: 0.95rem;
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    text-align: center;
+}
+
+/* ==========================================================
+   10. GAME 3: CỜ CARO (GOMOKU 12x12)
+   ========================================================== */
+.caro-header {
+    background: #f7ede0;
+    border: 1.5px solid #ded0bd;
+    border-radius: 12px;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.caro-players {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.caro-vs {
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: #8c7159;
+}
+
+.turn-pill.x-turn {
+    background: #eff6ff;
+    border: 1.5px solid #60a5fa;
+    color: #1d4ed8;
+    padding: 3px 8px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+}
+
+.turn-pill.o-turn {
+    background: #fff7ed;
+    border: 1.5px solid #fb923c;
+    color: #c2410c;
+    padding: 3px 8px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+}
+
+.caro-status-line {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #4a2810;
+}
+
+.caro-controls {
+    display: flex;
+    gap: 6px;
+}
+
+.caro-board-wrapper {
+    background: #fbf8f3;
+    border: 2px solid #b77945;
+    border-radius: 12px;
+    padding: 4px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.caro-board {
+    display: grid;
+    gap: 1px;
+    background: #d8c2a9;
+    border: 1px solid #d8c2a9;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+}
+
+.caro-cell {
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    font-weight: 900;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+.caro-cell.x {
+    color: #0284c7;
+}
+
+.caro-cell.o {
+    color: #ea580c;
+}
+
+.caro-cell.last-move {
+    background: #fef9c3;
+    box-shadow: inset 0 0 4px #eab308;
+}
+
+.caro-cell.win-cell {
+    background: #fde047;
+    animation: winPulse 0.6s infinite alternate;
+}
+
+@keyframes winPulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.08); }
+}
+
+.caro-hint {
+    margin-top: 6px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.caro-winner-banner {
+    background: #ecfdf5;
+    border: 2px solid var(--accent-green);
+    color: #047857;
+    font-weight: 900;
+    font-size: 0.95rem;
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    text-align: center;
+}
+
+/* ==========================================================
+   11. GAME 4: ĐOÁN CON THÚ (GUESS WHO - ANIMAL EDITION)
+   ========================================================== */
+.dt-header {
+    background: #f8efe4;
+    border: 1.5px solid #ded0bd;
+    border-radius: 12px;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+}
+
+.dt-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.secret-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #ffffff;
+    border: 1.5px solid #eab308;
+    padding: 3px 8px;
+    border-radius: 8px;
+}
+
+.secret-icon {
+    font-size: 1.3rem;
+}
+
+.secret-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.secret-info strong {
+    font-size: 0.78rem;
+    color: #3b190a;
+}
+
+.secret-info small {
+    font-size: 0.65rem;
+    color: #786658;
+}
+
+.dt-badge-rem {
+    font-size: 0.76rem;
+    font-weight: 800;
+    background: #f1ebd8;
+    color: #5c3a21;
+    padding: 3px 7px;
+    border-radius: 6px;
+    border: 1px solid #dcd0be;
+}
+
+.dt-stats {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Lưới 30 Thẻ Con Thú (5 cột x 6 hàng) */
+.dt-grid-wrapper {
+    background: #ffffff;
+    border: 1.5px solid #ded0bd;
+    border-radius: 12px;
+    padding: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.dt-animal-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+}
+
+.dt-card {
+    background: #fbf7f0;
+    border: 1.5px solid #e5d8c7;
+    border-radius: 8px;
+    padding: 3px 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    min-height: 52px;
+    position: relative;
+    user-select: none;
+    transition: transform 0.08s ease, opacity 0.12s ease;
+}
+
+.dt-card:active {
+    transform: scale(0.94);
+}
+
+.dt-animal-icon {
+    font-size: 1.3rem;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.dt-animal-name {
+    font-size: 0.58rem;
+    font-weight: 800;
+    color: #2b1d12;
+    line-height: 1.1;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 58px;
+}
+
+.dt-animal-en {
+    font-size: 0.48rem;
+    color: #8c7562;
+    display: block;
+    line-height: 1;
+}
+
+.dt-card-back {
+    display: none;
+}
+
+/* Thẻ bị lật úp / loại bỏ */
+.dt-card.flipped {
+    opacity: 0.22;
+    background: #e2e8f0;
+    border-color: #cbd5e1;
+    filter: grayscale(100%);
+}
+
+.dt-card.flipped .dt-card-back {
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+}
+
+.dt-flipped-mark {
+    font-size: 1.5rem;
+    color: #dc2626;
+    font-weight: 900;
+}
+
+/* Bảng câu hỏi dưới cùng */
+.dt-actions-panel {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.dt-action-hint {
+    font-size: 0.72rem;
+    color: #786658;
+    text-align: center;
+}
+
+.dt-categories-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+}
+
+.dt-cat-btn {
+    background: #fdfbf7;
+    border: 1.5px solid #ded0bd;
+    border-radius: 8px;
+    padding: 5px 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #3b190a;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.dt-cat-btn:active {
+    transform: scale(0.95);
+    background: #f4ecdf;
+}
+
+.dt-cat-btn .icon {
+    font-size: 0.85rem;
+}
+
+.btn-dt-guess {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+    border: none;
+    border-radius: 20px;
+    color: #ffffff;
+    font-weight: 900;
+    font-size: 0.92rem;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #b45309, 0 4px 10px rgba(245, 158, 11, 0.3);
+}
+
+.btn-dt-guess:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #b45309;
+}
+
+.btn-dt-guess.active-guessing {
+    background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+    box-shadow: 0 3px 0 #991b1b;
+}
+
+/* Answer banner */
+.dt-answer-banner {
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    margin-bottom: 5px;
+    text-align: center;
+}
+
+.dt-answer-banner.match-yes {
+    background: #ecfdf5;
+    border: 1.5px solid #10b981;
+    color: #047857;
+}
+
+.dt-answer-banner.match-no {
+    background: #fef2f2;
+    border: 1.5px solid #ef4444;
+    color: #b91c1c;
+}
+
+.dt-winner-banner {
+    background: #fef3c7;
+    border: 2px solid var(--gold);
+    color: #92400e;
+    font-weight: 900;
+    font-size: 0.95rem;
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    text-align: center;
+}
+
+/* Modal câu hỏi của danh mục */
+.dt-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+    padding: 12px;
+}
+
+.dt-modal-card {
+    background: #ffffff;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 360px;
+    padding: 14px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.dt-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.dt-modal-header strong {
+    font-size: 0.95rem;
+    color: #3b190a;
+}
+
+.dt-modal-close {
+    background: #f1f5f9;
+    border: none;
+    font-size: 1.3rem;
+    color: #64748b;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dt-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dt-q-btn {
+    padding: 9px 12px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1e293b;
+    cursor: pointer;
+    text-align: left;
+}
+
+.dt-q-btn:active {
+    background: #eff6ff;
+    border-color: var(--accent-blue);
+}
+
+.q-color-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: inline-block;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.q-emoji {
+    font-size: 1.15rem;
+}

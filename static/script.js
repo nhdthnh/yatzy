@@ -328,6 +328,12 @@ function createDiceElements() {
 function initApp() {
     createDiceElements();
     setupEventListeners();
+    setupHubNavigation();
+
+    // Khởi tạo các trò chơi bổ sung (Cờ Caro, Ô Ăn Quan, Đoán Con Thú)
+    if (typeof CaroGame !== 'undefined') CaroGame.init();
+    if (typeof OAnQuanGame !== 'undefined') OAnQuanGame.init();
+    if (typeof DoanThuGame !== 'undefined') DoanThuGame.init();
 
     // Pause polling when tab is hidden to save RAM/CPU
     document.addEventListener('visibilitychange', () => {
@@ -350,6 +356,27 @@ function initApp() {
         // Default start: 2 Players on same device: An vs Thành
         startNewGame('pass_play', 'An', 'Thành');
     }
+}
+
+// Chuyển đổi giữa 4 trò chơi ngay tức thì (0ms, không tải lại trang)
+function setupHubNavigation() {
+    document.querySelectorAll('.hub-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            playSound('click');
+            const targetGame = btn.dataset.gameTarget;
+
+            // Đổi tab active
+            document.querySelectorAll('.hub-tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Ẩn tất cả trò chơi
+            document.querySelectorAll('.game-view').forEach(v => v.classList.add('hidden'));
+
+            // Hiện trò chơi được chọn
+            const targetEl = document.getElementById(`game-view-${targetGame}`);
+            if (targetEl) targetEl.classList.remove('hidden');
+        });
+    });
 }
 
 function setupEventListeners() {
