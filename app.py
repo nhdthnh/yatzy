@@ -245,12 +245,17 @@ def roll(game_id):
     current_dice = game["dice"]
     has_rolled = game["has_rolled"]
 
-    new_dice = []
-    for i in range(5):
-        if i in held:
-            new_dice.append(current_dice[i])
-        else:
-            new_dice.append(random.randint(1, 6))
+    # Nếu là lần đổ đầu tiên của lượt (chưa đổ lần nào), bắt buộc phải đổ cả 5 con, không cho giữ xúc xắc
+    if not has_rolled or game["rolls_left"] == 3:
+        held = []
+        new_dice = [random.randint(1, 6) for _ in range(5)]
+    else:
+        new_dice = []
+        for i in range(5):
+            if i in held:
+                new_dice.append(current_dice[i])
+            else:
+                new_dice.append(random.randint(1, 6))
 
     game["dice"] = new_dice
     game["rolls_left"] -= 1
@@ -276,6 +281,9 @@ def toggle_hold_api(game_id):
 
     if game["mode"] == "online" and active_player["id"] != caller_player_id:
         return jsonify({"error": "Chưa đến lượt của bạn!"}), 403
+
+    if not game["has_rolled"] or game["rolls_left"] == 3:
+        return jsonify({"error": "Bạn phải đổ xúc xắc lần đầu tiên trước khi được chọn giữ!"}), 400
 
     held = data.get("held", [])
     held = [i for i in held if isinstance(i, int) and 0 <= i < 5]

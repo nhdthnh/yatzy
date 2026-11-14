@@ -413,7 +413,25 @@ async function handleRoll() {
 }
 
 async function toggleHold(idx) {
-    if (!gameState?.can_act || gameState.rolls_left === 0 || isRollingAnimation) return;
+    if (!gameState?.can_act || isRollingAnimation) return;
+
+    // Chặn tuyệt đối không cho giữ khi chưa đổ lần đầu (rolls_left == 3 hoặc !has_rolled)
+    if (!gameState.has_rolled || gameState.rolls_left === 3) {
+        playSound('click');
+        turnHint.innerHTML = '⚠️ <strong>Chưa thể giữ!</strong> Bạn phải bấm nút <strong>"ĐỔ XÚC XẮC"</strong> lần đầu trước!';
+        turnHint.style.color = '#f59e0b';
+        btnRoll.classList.add('pulse-attention');
+        setTimeout(() => {
+            btnRoll.classList.remove('pulse-attention');
+            turnHint.style.color = '';
+        }, 1500);
+        return;
+    }
+
+    if (gameState.rolls_left === 0) {
+        turnHint.innerHTML = '⚠️ <strong>Đã hết lượt đổ!</strong> Vui lòng bấm vào 1 ô trên bảng điểm để kết thúc lượt.';
+        return;
+    }
 
     playSound('click');
     const pos = gameState.held.indexOf(idx);
@@ -424,7 +442,7 @@ async function toggleHold(idx) {
     }
     renderDice();
 
-    // Đồng bộ lên server để phòng online hoặc polling không bị mất trạng thái giữ
+    // Đồng bộ lên server
     if (currentGameId) {
         try {
             await fetch(`/api/game/${currentGameId}/hold`, {
@@ -549,36 +567,41 @@ function renderTurnBanner() {
         holdGuide.classList.remove('hidden');
     }
 
-    // Roll button state
+    // Roll button and hint state
     if (!gameState.can_act) {
         btnRoll.disabled = true;
         rollBtnText.textContent = 'ĐANG ĐỢI ĐỐI THỦ...';
         turnHint.textContent = 'Chờ đối thủ hoàn thành lượt chơi.';
+        holdGuide.innerHTML = '<small>⏳ Đang chờ lượt đối thủ...</small>';
     } else if (!gameState.has_rolled) {
         btnRoll.disabled = false;
-        rollBtnText.textContent = 'ĐỔ XÚC XẮC';
-        turnHint.textContent = 'Nhấn "ĐỔ XÚC XẮC" hoặc bấm chọn xúc xắc bạn muốn giữ!';
+        rollBtnText.textContent = '🎲 ĐỔ XÚC XẮC (LẦN 1)';
+        turnHint.textContent = 'Bấm "ĐỔ XÚC XẮC" để bắt đầu lượt (Lần 1 phải đổ cả 5 con)!';
+        holdGuide.innerHTML = '<small>👉 Hãy bấm <strong>"ĐỔ XÚC XẮC"</strong> lần 1 để mở khóa chức năng giữ xúc xắc</small>';
     } else if (gameState.rolls_left > 0) {
         btnRoll.disabled = false;
-        rollBtnText.textContent = `ĐỔ TIẾP (${gameState.rolls_left})`;
-        turnHint.textContent = `Click giữ xúc xắc mong muốn, rồi Đổ tiếp (${gameState.rolls_left} lần) hoặc Chọn 1 ô điểm.`;
+        rollBtnText.textContent = `🎲 ĐỔ TIẾP (${gameState.rolls_left} lần)`;
+        turnHint.textContent = `Chọn xúc xắc để Giữ, hoặc Đổ tiếp (${gameState.rolls_left} lần) hoặc Chọn 1 ô điểm.`;
+        holdGuide.innerHTML = `<small>💡 Chạm hoặc click vào xúc xắc để <strong>Giữ lại (Hold)</strong> trước khi đổ tiếp</small>`;
     } else {
         btnRoll.disabled = true;
         rollBtnText.textContent = 'HẾT LƯỢT ĐỔ';
-        turnHint.textContent = 'Đã hết lần đổ! Bắt buộc phải bấm vào 1 ô điểm để chuyển lượt.';
+        turnHint.textContent = 'Đã hết lần đổ! Bắt buộc phải bấm vào 1 ô điểm để kết thúc lượt.';
+        holdGuide.innerHTML = '<small>🏁 Đã hết 3 lần đổ. Hãy <strong>chọn 1 ô điểm</strong> trên bảng để hoàn thành lượt!</small>';
     }
 }
 
 function renderDice() {
     diceContainer.innerHTML = '';
+    const isUnrolledTurn = !gameState.has_rolled || gameState.rolls_left === 3;
+
     gameState.dice.forEach((val, idx) => {
         const wrapper = document.createElement('div');
         const isHeld = gameState.held.includes(idx);
-        wrapper.className = `die-wrapper ${isHeld ? 'is-held' : ''}`;
-        wrapper.setAttribute('title', isHeld ? 'Click để bỏ giữ' : 'Click để giữ lại xúc xắc này');
+        wrapper.className = `die-wrapper ${isHeld ? 'is-held' : ''} ${isUnrolledTurn ? 'unrolled' : ''}`;
 
         const die = document.createElement('div');
-        die.className = 'die';
+        die.className = `die ${isUnrolledTurn ? 'unrolled-die' : ''}`;
         die.dataset.value = val;
 
         const pips = PIP_CONFIGS[val] || [];
@@ -589,8 +612,19 @@ function renderDice() {
         });
 
         const tag = document.createElement('span');
-        tag.className = 'hold-tag';
-        tag.textContent = isHeld ? '✓ ĐÃ GIỮ' : 'GIỮ';
+        if (isUnrolledTurn) {
+            tag.className = 'hold-tag disabled-tag';
+            tag.textContent = 'CHƯA ĐỔ';
+            wrapper.setAttribute('title', 'Cần bấm "Đổ Xúc Xắc" lần 1 trước khi được giữ!');
+        } else if (gameState.rolls_left === 0) {
+            tag.className = `hold-tag ${isHeld ? 'is-held' : 'disabled-tag'}`;
+            tag.textContent = isHeld ? '✓ ĐÃ GIỮ' : 'HẾT LƯỢT';
+            wrapper.setAttribute('title', 'Đã hết lượt đổ');
+        } else {
+            tag.className = `hold-tag ${isHeld ? 'is-held' : ''}`;
+            tag.textContent = isHeld ? '✓ ĐÃ GIỮ' : 'GIỮ';
+            wrapper.setAttribute('title', isHeld ? 'Click để bỏ giữ' : 'Click để giữ lại xúc xắc này');
+        }
 
         wrapper.appendChild(die);
         wrapper.appendChild(tag);
