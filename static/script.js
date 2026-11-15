@@ -71,6 +71,32 @@ function playSound(type) {
                 osc.start(startTime);
                 osc.stop(startTime + 0.2);
             });
+        } else if (type === 'stone_drop') {
+            // Tiếng thả sỏi rải vào ô
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(460, now);
+            osc.frequency.exponentialRampToValueAtTime(180, now + 0.045);
+            gain.gain.setValueAtTime(0.09, now);
+            gain.gain.linearRampToValueAtTime(0.001, now + 0.045);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.045);
+        } else if (type === 'slap') {
+            // Tiếng đập tay/vỗ chát đanh giòn vào ô trống
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(320, now);
+            osc.frequency.exponentialRampToValueAtTime(45, now + 0.09);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.005, now + 0.09);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.09);
         } else if (type === 'celebrate') {
             const fanfare = [523.25, 659.25, 783.99, 1046.50];
             fanfare.forEach((freq, idx) => {

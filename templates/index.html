@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#fbf8f3">
     <title>Kho Game 2 Người - An & Thành</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20261115_switchfix_v4">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20261115_oanquan_hand_v5">
 </head>
 <body class="light-theme">
     <div class="game-wrapper">
@@ -245,7 +245,19 @@
             <div class="oa-winner-banner hidden" id="oa-winner-banner"></div>
 
             <!-- Bàn Cờ Dân Gian Gỗ/Đất nung -->
-            <div class="oa-board-container">
+            <div class="oa-board-container" id="oa-board-container">
+                <!-- Bàn tay mô phỏng nắm sỏi để rải & đập ô trống -->
+                <div class="oa-hand-actor" id="oa-hand-actor">
+                    <div class="oa-hand-sprite" id="oa-hand-sprite">✊</div>
+                    <div class="oa-hand-badge" id="oa-hand-badge">0</div>
+                </div>
+
+                <!-- Hiệu ứng vỗ chát đập vào ô trống khi ăn sỏi -->
+                <div class="oa-slap-burst" id="oa-slap-burst">
+                    <span class="slap-icon">💥</span>
+                    <span class="slap-label">ĐẬP ĂN!</span>
+                </div>
+
                 <!-- Quan Trái -->
                 <div class="oa-quan-cell left-quan" id="oa-quan-left">
                     <div class="quan-label">QUAN TRÁI</div>
@@ -580,10 +592,10 @@
     <canvas id="confetti-canvas"></canvas>
 
     <!-- Scripts: Games modules & Master Controller -->
-    <script src="{{ url_for('static', filename='games/hub_online.js') }}?v=20261115_switchfix_v4"></script>
-    <script src="{{ url_for('static', filename='games/caro.js') }}?v=20261115_switchfix_v4"></script>
-    <script src="{{ url_for('static', filename='games/oanquan.js') }}?v=20261115_switchfix_v4"></script>
-    <script src="{{ url_for('static', filename='games/doanthu.js') }}?v=20261115_switchfix_v4"></script>
-    <script src="{{ url_for('static', filename='script.js') }}?v=20261115_switchfix_v4"></script>
+    <script src="{{ url_for('static', filename='games/hub_online.js') }}?v=20261115_oanquan_hand_v5"></script>
+    <script src="{{ url_for('static', filename='games/caro.js') }}?v=20261115_oanquan_hand_v5"></script>
+    <script src="{{ url_for('static', filename='games/oanquan.js') }}?v=20261115_oanquan_hand_v5"></script>
+    <script src="{{ url_for('static', filename='games/doanthu.js') }}?v=20261115_oanquan_hand_v5"></script>
+    <script src="{{ url_for('static', filename='script.js') }}?v=20261115_oanquan_hand_v5"></script>
 </body>
 </html>

@@ -1323,6 +1323,149 @@ body.light-theme {
     padding: 8px 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     user-select: none;
+    position: relative;
+    overflow: visible;
+}
+
+/* ==========================================================
+   BÀN TAY MÔ PHỎNG NẮM SỎI ĐỂ RẢI & ĐẬP Ô TRỐNG
+   ========================================================== */
+.oa-hand-actor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 46px;
+    height: 46px;
+    margin-left: -23px;
+    margin-top: -30px;
+    pointer-events: none;
+    z-index: 120;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.6);
+    transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.15s ease;
+}
+
+.oa-hand-actor.active {
+    opacity: 1;
+}
+
+.oa-hand-sprite {
+    font-size: 2.3rem;
+    line-height: 1;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.38));
+    transition: transform 0.14s ease;
+    transform-origin: center bottom;
+}
+
+.oa-hand-actor.scoop .oa-hand-sprite {
+    transform: scale(1.22) rotate(-14deg);
+}
+
+.oa-hand-actor.drop .oa-hand-sprite {
+    transform: translateY(8px) scale(0.92);
+}
+
+.oa-hand-actor.raise .oa-hand-sprite {
+    transform: scale(1.45) translateY(-24px) rotate(-20deg);
+}
+
+.oa-hand-actor.slap .oa-hand-sprite {
+    transform: scale(1.2) translateY(14px) rotate(10deg);
+}
+
+.oa-hand-badge {
+    position: absolute;
+    top: -6px;
+    right: -4px;
+    background: #ea580c;
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 900;
+    padding: 1px 6px;
+    border-radius: 10px;
+    border: 1.5px solid #ffffff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+    min-width: 18px;
+    text-align: center;
+    transition: all 0.1s ease;
+}
+
+.oa-hand-actor.slap .oa-hand-badge,
+.oa-hand-actor.empty-hand .oa-hand-badge {
+    opacity: 0;
+    transform: scale(0.5);
+}
+
+/* Hiệu ứng vỗ chát đập ô trống */
+.oa-slap-burst {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 68px;
+    height: 68px;
+    margin-left: -34px;
+    margin-top: -34px;
+    pointer-events: none;
+    z-index: 110;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.3);
+    transition: transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.22s ease;
+}
+
+.oa-slap-burst.bursting {
+    opacity: 1;
+    transform: scale(1.4);
+}
+
+.slap-icon {
+    font-size: 2rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.75));
+}
+
+.slap-label {
+    background: #dc2626;
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 900;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    margin-top: -2px;
+}
+
+.oa-cell-slapped {
+    animation: cellSlapHighlight 0.65s ease;
+}
+
+@keyframes cellSlapHighlight {
+    0% { background: #fee2e2 !important; transform: scale(1.1); box-shadow: 0 0 14px rgba(239, 68, 68, 0.7); }
+    50% { background: #fef08a !important; transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.oa-cell-dropping {
+    animation: cellDropPulse 0.18s ease;
+}
+
+@keyframes cellDropPulse {
+    0% { transform: scale(1.07); }
+    100% { transform: scale(1); }
+}
+
+.oa-cell-preview-dir {
+    border-color: #f59e0b !important;
+    background: #fef9c3 !important;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.5) !important;
 }
 
 /* 2 Ô Quan hình bán nguyệt */

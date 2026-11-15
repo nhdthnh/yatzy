@@ -843,6 +843,13 @@ def hub_action(room_code):
         if caller_idx == 1 and not (6 <= start_cell <= 10 and state["board"][start_cell]["count"] > 0):
             return jsonify({"error": "Ô không hợp lệ!"}), 400
 
+        move_id = uuid.uuid4().hex[:6]
+        state["last_move"] = {
+            "start_cell": start_cell,
+            "direction": direction,
+            "player_idx": caller_idx,
+            "move_id": move_id
+        }
         execute_oanquan_move_server(state, caller_idx, start_cell, direction)
         if state["winner"] is not None:
             room["status"] = "game_over"

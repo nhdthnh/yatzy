@@ -1,21 +1,23 @@
 // ==========================================================
 // Ô ĂN QUAN (MANDARIN SQUARE CAPTURING) - TRÒ CHƠI DÂN GIAN VIỆT NAM
-// Chuẩn luật truyền thống 2 người chơi: An (Nữ) vs Thành (Nam) hoặc Đấu Máy
+// Mô phỏng bàn tay nắm sỏi để rải & đập vào ô trống khi ăn sỏi
+// 100% Chuẩn luật dân gian, tối ưu 60fps mượt mà, siêu nhẹ cho RAM 512MB
 // ==========================================================
 
 const OAnQuanGame = (function() {
     // 12 Ô: 
-    // 0..4: Dân P1 (An)
-    // 5: Quan Phải
-    // 6..10: Dân P2 (Thành)
-    // 11: Quan Trái
+    // 0..4: Dân P1 (An - Hàng trên)
+    // 5: Quan Phải (Bán nguyệt phải)
+    // 6..10: Dân P2 (Thành - Hàng dưới)
+    // 11: Quan Trái (Bán nguyệt trái)
     let board = [];
     let currentPlayer = 1; // 1: An, 2: Thành
     let scores = { 1: 0, 2: 0 };
     let selectedCell = null;
     let isAnimating = false;
     let gameOver = false;
-    let gameMode = 'pvp'; // 'pvp' (2 người) hoặc 'pve' (chơi với máy)
+    let gameMode = 'pvp'; // 'pvp' (2 người), 'pve' (đấu máy), hoặc 'online'
+    let lastAnimatedMoveId = null;
 
     function init() {
         resetGame();
@@ -42,7 +44,9 @@ const OAnQuanGame = (function() {
         selectedCell = null;
         isAnimating = false;
         gameOver = false;
+        lastAnimatedMoveId = null;
 
+        hideHand();
         renderBoard();
         updateDisplay();
         hideWinner();
@@ -118,6 +122,115 @@ const OAnQuanGame = (function() {
         }
     }
 
+    // ==========================================================
+    // CÁC HÀM ĐIỀU KHIỂN BÀN TAY & HIỆU ỨNG ĐẬP Ô TRỐNG
+    // ==========================================================
+    function getCellElement(idx) {
+        if (idx === 5) return document.getElementById('oa-quan-right');
+        if (idx === 11) return document.getElementById('oa-quan-left');
+        return document.getElementById(`oa-cell-${idx}`);
+    }
+
+    function getCellCenter(idx) {
+        const boardEl = document.getElementById('oa-board-container') || document.querySelector('.oa-board-container');
+        const cellEl = getCellElement(idx);
+        if (!boardEl || !cellEl) return { x: 0, y: 0 };
+        const boardRect = boardEl.getBoundingClientRect();
+        const cellRect = cellEl.getBoundingClientRect();
+        return {
+            x: cellRect.left - boardRect.left + cellRect.width / 2,
+            y: cellRect.top - boardRect.top + cellRect.height / 2
+        };
+    }
+
+    function showHandAt(idx, count, sprite = '✊') {
+        const handEl = document.getElementById('oa-hand-actor');
+        const spriteEl = document.getElementById('oa-hand-sprite');
+        const badgeEl = document.getElementById('oa-hand-badge');
+        if (!handEl) return;
+
+        const pos = getCellCenter(idx);
+        handEl.style.transition = 'none';
+        handEl.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
+        if (spriteEl) spriteEl.textContent = sprite;
+        if (badgeEl) badgeEl.textContent = count;
+        handEl.className = 'oa-hand-actor active';
+
+        // Bật lại hiệu ứng lướt mượt sau khi nhảy đến ô đầu
+        requestAnimationFrame(() => {
+            handEl.style.transition = 'transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.15s ease';
+        });
+    }
+
+    function moveHandTo(idx) {
+        const handEl = document.getElementById('oa-hand-actor');
+        if (!handEl) return;
+        const pos = getCellCenter(idx);
+        handEl.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
+    }
+
+    function setHandState(stateClass) {
+        const handEl = document.getElementById('oa-hand-actor');
+        if (!handEl) return;
+        handEl.className = `oa-hand-actor active ${stateClass}`;
+    }
+
+    function setHandSprite(sprite) {
+        const spriteEl = document.getElementById('oa-hand-sprite');
+        if (spriteEl) spriteEl.textContent = sprite;
+    }
+
+    function updateHandCount(count) {
+        const badgeEl = document.getElementById('oa-hand-badge');
+        if (badgeEl) badgeEl.textContent = count;
+    }
+
+    function hideHand() {
+        const handEl = document.getElementById('oa-hand-actor');
+        if (handEl) handEl.classList.remove('active');
+    }
+
+    function triggerSlap(idx) {
+        const slapEl = document.getElementById('oa-slap-burst');
+        const cellEl = getCellElement(idx);
+        playSound('slap');
+
+        if (slapEl) {
+            const pos = getCellCenter(idx);
+            slapEl.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0) scale(0.3)`;
+            slapEl.classList.remove('bursting');
+            void slapEl.offsetWidth; // Force reflow
+            slapEl.classList.add('bursting');
+            setTimeout(() => {
+                slapEl.classList.remove('bursting');
+            }, 600);
+        }
+
+        if (cellEl) {
+            cellEl.classList.add('oa-cell-slapped');
+            setTimeout(() => {
+                cellEl.classList.remove('oa-cell-slapped');
+            }, 650);
+        }
+    }
+
+    function highlightDirectionPreviews(idx) {
+        clearDirectionPreviews();
+        const nextClockwise = (idx + 1) % 12;
+        const nextCounter = (idx - 1 + 12) % 12;
+        const elCW = getCellElement(nextClockwise);
+        const elCCW = getCellElement(nextCounter);
+        if (elCW) elCW.classList.add('oa-cell-preview-dir');
+        if (elCCW) elCCW.classList.add('oa-cell-preview-dir');
+    }
+
+    function clearDirectionPreviews() {
+        document.querySelectorAll('.oa-cell-preview-dir').forEach(el => el.classList.remove('oa-cell-preview-dir'));
+    }
+
+    // ==========================================================
+    // THAO TÁC CHỌN Ô & HƯỚNG ĐI
+    // ==========================================================
     function selectCell(idx) {
         if (isAnimating || gameOver) return;
 
@@ -153,7 +266,9 @@ const OAnQuanGame = (function() {
         const dirBox = document.getElementById('oa-direction-picker');
         if (!dirBox) return;
 
+        highlightDirectionPreviews(idx);
         dirBox.classList.remove('hidden');
+
         const btnLeft = document.getElementById('oa-btn-left');
         const btnRight = document.getElementById('oa-btn-right');
 
@@ -171,77 +286,152 @@ const OAnQuanGame = (function() {
     function hideDirections() {
         const dirBox = document.getElementById('oa-direction-picker');
         if (dirBox) dirBox.classList.add('hidden');
+        clearDirectionPreviews();
     }
 
     function chooseDirection(dir) {
         hideDirections();
         if (selectedCell === null || isAnimating) return;
 
+        const cell = selectedCell;
+        selectedCell = null;
+        renderBoard();
+
         if (gameMode === 'online') {
-            playSound('click');
-            HubOnline.sendAction({ action: 'move', start_cell: selectedCell, direction: dir });
-            selectedCell = null;
-            renderBoard();
+            HubOnline.sendAction({ action: 'move', start_cell: cell, direction: dir });
+            executeMove(cell, dir);
             return;
         }
 
-        executeMove(selectedCell, dir);
+        executeMove(cell, dir);
     }
 
+    // ==========================================================
+    // DIỄN HOẠT BÀN TAY RẢI SỎI & ĐẬP Ô TRỐNG
+    // ==========================================================
     async function executeMove(startIdx, dir) {
         isAnimating = true;
+        hideDirections();
+
+        const playerName = (currentPlayer === 1) ? 'An' : ((gameMode === 'pve') ? 'Máy' : 'Thành');
+        showActionHint(`👉 ${playerName} đang bốc sỏi tại ô ${startIdx + 1}...`);
+
         let curr = startIdx;
         let hand = board[curr].count;
         board[curr].count = 0;
         renderBoard();
 
-        const stepDelay = 180; // Tốc độ rải quân mượt mà và nhanh
+        // 1. Hiện bàn tay tại ô bắt đầu và bốc sỏi
+        showHandAt(curr, hand, '🫳');
+        setHandState('scoop');
+        playSound('click');
+        await sleep(240);
+        setHandSprite('✊');
+        setHandState('');
+        await sleep(100);
+
+        const stepDelay = 220; // Tốc độ rải từng viên mượt mà, dễ quan sát hướng đi
 
         while (hand > 0) {
-            playSound('click');
-            // Rải từng viên
+            // 2. Rải từng viên sỏi theo hướng đã chọn
             while (hand > 0) {
                 curr = (curr + dir + 12) % 12;
+
+                // Di chuyển bàn tay tới ô kế tiếp
+                moveHandTo(curr);
+                await sleep(stepDelay * 0.7);
+
+                // Thả 1 viên sỏi vào ô
+                setHandState('drop');
                 board[curr].count++;
                 hand--;
+                updateHandCount(hand);
                 renderBoard();
-                await sleep(stepDelay);
+
+                const cellEl = getCellElement(curr);
+                if (cellEl) {
+                    cellEl.classList.add('oa-cell-dropping');
+                    setTimeout(() => cellEl.classList.remove('oa-cell-dropping'), 180);
+                }
+
+                playSound('stone_drop');
+                await sleep(stepDelay * 0.3);
+                setHandState('');
             }
 
-            // Kiểm tra ô kế tiếp
+            // Hết sỏi trên tay, kiểm tra ô kế tiếp
             const nextIdx = (curr + dir + 12) % 12;
 
-            // Nếu ô kế tiếp là ô Dân và CÓ quân -> Bốc lên rải tiếp!
+            // TRƯỜNG HỢP 1: Ô tiếp theo là Ô DÂN và CÓ SỎI -> Bốc tiếp rải tiếp!
             if (board[nextIdx].type === 'dan' && board[nextIdx].count > 0) {
-                playSound('click');
-                curr = nextIdx;
-                hand = board[curr].count;
-                board[curr].count = 0;
-                renderBoard();
+                moveHandTo(nextIdx);
                 await sleep(stepDelay);
+
+                showActionHint(`🖐️ Bốc tiếp ${board[nextIdx].count} sỏi tại ô ${nextIdx + 1}...`);
+                setHandState('scoop');
+                playSound('click');
+
+                hand = board[nextIdx].count;
+                board[nextIdx].count = 0;
+                updateHandCount(hand);
+                renderBoard();
+
+                curr = nextIdx;
+                await sleep(240);
+                setHandSprite('✊');
+                setHandState('');
                 continue;
             }
 
-            // Nếu ô kế tiếp là ô TRỐNG
-            if (board[nextIdx].count === 0 && board[nextIdx].type === 'dan') {
-                // Kiểm tra ăn quân liên hoàn!
+            // TRƯỜNG HỢP 2: Ô tiếp theo là Ô TRỐNG (count === 0)
+            if (board[nextIdx].count === 0) {
                 let checkEmpty = nextIdx;
                 let eatIdx = (checkEmpty + dir + 12) % 12;
 
-                while (board[checkEmpty].count === 0 && board[eatIdx].count > 0) {
-                    // Ăn toàn bộ quân ở eatIdx
-                    playSound('score');
-                    const eaten = board[eatIdx].count;
-                    board[eatIdx].count = 0;
-                    board[eatIdx].hasBigQuan = false;
-                    scores[currentPlayer] += eaten;
-                    renderBoard();
-                    updateDisplay();
-                    await sleep(stepDelay * 1.5);
+                // Kiểm tra xem ô sau ô trống có sỏi để ĂN không
+                if (board[eatIdx].count > 0) {
+                    while (board[checkEmpty].count === 0 && board[eatIdx].count > 0) {
+                        // Di chuyển bàn tay tới ô trống
+                        moveHandTo(checkEmpty);
+                        await sleep(stepDelay * 0.8);
 
-                    // Kiểm tra tiếp xem có ăn liên hoàn không
-                    checkEmpty = (eatIdx + dir + 12) % 12;
-                    eatIdx = (checkEmpty + dir + 12) % 12;
+                        // Giơ tay lên chuẩn bị đập!
+                        setHandSprite('🖐️');
+                        setHandState('raise');
+                        showActionHint(`💥 ĐẬP VÀO Ô TRỐNG ĐỂ ĂN SỎI!`);
+                        await sleep(200);
+
+                        // ĐẬP MẠNH XUỐNG Ô TRỐNG!
+                        setHandState('slap');
+                        triggerSlap(checkEmpty);
+                        await sleep(260);
+
+                        // Thu hoạch sỏi ở ô eatIdx
+                        const eaten = board[eatIdx].count;
+                        board[eatIdx].count = 0;
+                        board[eatIdx].hasBigQuan = false;
+                        scores[currentPlayer] += eaten;
+
+                        showActionHint(`🎉 ${playerName} ĂN ĐƯỢC +${eaten} SỎI!`);
+                        playSound('score');
+
+                        renderBoard();
+                        updateDisplay();
+                        await sleep(400);
+
+                        setHandState('');
+                        setHandSprite('✊');
+
+                        // Kiểm tra ăn liên hoàn (ô tiếp theo trống và ô sau đó có sỏi)
+                        checkEmpty = (eatIdx + dir + 12) % 12;
+                        eatIdx = (checkEmpty + dir + 12) % 12;
+                    }
+                } else {
+                    // Cách 2 ô trống -> Nhịn ăn!
+                    moveHandTo(nextIdx);
+                    setHandSprite('🖐️');
+                    showActionHint(`🚫 Gặp 2 ô trống liên tiếp -> Hết lượt!`);
+                    await sleep(350);
                 }
             }
 
@@ -249,10 +439,11 @@ const OAnQuanGame = (function() {
             break;
         }
 
+        hideHand();
         selectedCell = null;
         isAnimating = false;
 
-        // Kiểm tra điều kiện kết thúc trò chơi
+        // Kiểm tra kết thúc ván
         if (checkGameOver()) {
             endGame();
             return;
@@ -260,38 +451,32 @@ const OAnQuanGame = (function() {
 
         // Chuyển lượt
         currentPlayer = (currentPlayer === 1) ? 2 : 1;
-
-        // Kiểm tra xem người chơi tiếp theo có quân để đi không
         checkMustRefillStones(currentPlayer);
 
         renderBoard();
         updateDisplay();
 
-        // Nếu là lượt máy (P2 trong PVE)
+        // Nếu là lượt máy (PVE)
         if (gameMode === 'pve' && currentPlayer === 2 && !gameOver) {
-            setTimeout(makeAiMove, 500);
+            setTimeout(makeAiMove, 600);
         }
     }
 
+    // Khi 5 ô dân bên mình hết sạch quân -> Phải rải mỗi ô 1 viên từ điểm của mình
     function checkMustRefillStones(player) {
         const start = (player === 1) ? 0 : 6;
         const end = (player === 1) ? 4 : 10;
         let total = 0;
-        for (let i = start; i <= end; i++) {
-            total += board[i].count;
-        }
+        for (let i = start; i <= end; i++) total += board[i].count;
 
-        // Nếu 5 ô đều hết quân -> Bắt buộc rải điểm từ kho điểm
-        if (total === 0) {
+        if (total === 0 && !gameOver) {
+            const pName = (player === 1) ? 'An' : ((gameMode === 'pve') ? 'Máy' : 'Thành');
             if (scores[player] >= 5) {
                 scores[player] -= 5;
-                for (let i = start; i <= end; i++) {
-                    board[i].count = 1;
-                }
-                const name = (player === 1) ? 'An' : 'Thành';
-                showActionHint(`👉 ${name} đã rải 5 điểm từ quỹ của mình vào 5 ô dân để tiếp tục.`);
+                for (let i = start; i <= end; i++) board[i].count = 1;
+                showActionHint(`⚠️ ${pName} hết quân ở 5 ô, phải bỏ ra 5 điểm để rải lại!`);
+                playSound('score');
             } else {
-                // Không đủ điểm để rải -> Hết quân, kết thúc ván
                 endGame();
             }
         }
@@ -361,17 +546,16 @@ const OAnQuanGame = (function() {
     }
 
     function simulateEat(startIdx, dir) {
-        // Ước lượng điểm ăn đơn giản
         let curr = startIdx;
         let count = board[startIdx].count;
         let target = (curr + (count * dir) + 1200) % 12;
         let nextTarget = (target + dir + 12) % 12;
         let eatTarget = (nextTarget + dir + 12) % 12;
 
-        if (board[nextTarget] && board[nextTarget].count === 0 && board[eatTarget]) {
+        if (board[nextTarget] && board[nextTarget].count === 0 && board[eatTarget] && board[eatTarget].count > 0) {
             return board[eatTarget].count;
         }
-        return Math.random() * 2; // Nếu không ăn được ngay thì chọn có ngẫu nhiên
+        return count; // Ưu tiên ô có nhiều sỏi nếu không ăn được ngay
     }
 
     function updateDisplay() {
@@ -393,7 +577,7 @@ const OAnQuanGame = (function() {
 
     function showActionHint(text) {
         const hintEl = document.getElementById('oa-hint-text');
-        if (hintEl) hintEl.textContent = text;
+        if (hintEl) hintEl.innerHTML = text;
     }
 
     function showWinner(msg) {
@@ -425,12 +609,29 @@ const OAnQuanGame = (function() {
         if (modePvE) modePvE.classList.remove('active');
 
         const st = room.state;
-        board = st.board || [];
-        scores = { 1: st.scores[0], 2: st.scores[1] };
-        currentPlayer = st.current_player_idx + 1;
 
-        renderBoard();
-        updateDisplay();
+        // Nếu đối thủ vừa đi một nước mới trên máy khác mà máy này chưa diễn hoạt hình bàn tay
+        if (st.last_move && st.last_move.move_id && st.last_move.move_id !== lastAnimatedMoveId) {
+            lastAnimatedMoveId = st.last_move.move_id;
+            if (st.last_move.player_idx !== room.caller_idx && !isAnimating) {
+                executeMove(st.last_move.start_cell, st.last_move.direction).then(() => {
+                    board = st.board || [];
+                    scores = { 1: st.scores[0], 2: st.scores[1] };
+                    currentPlayer = st.current_player_idx + 1;
+                    renderBoard();
+                    updateDisplay();
+                });
+                return;
+            }
+        }
+
+        if (!isAnimating) {
+            board = st.board || [];
+            scores = { 1: st.scores[0], 2: st.scores[1] };
+            currentPlayer = st.current_player_idx + 1;
+            renderBoard();
+            updateDisplay();
+        }
 
         if (room.status === 'game_over') {
             gameOver = true;
@@ -441,7 +642,7 @@ const OAnQuanGame = (function() {
                 showWinner(`${winName.toUpperCase()} CHIẾN THẮNG VỚI ${scores[st.winner + 1]} ĐIỂM! 🏆`);
                 playSound('celebrate');
             }
-        } else {
+        } else if (!isAnimating) {
             gameOver = false;
             hideWinner();
         }
