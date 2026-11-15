@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#fbf8f3">
     <title>Kho Game 2 Người - An & Thành</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20261115_oanquan_hand_v5">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20261115_oanquan_slow_v6">
 </head>
 <body class="light-theme">
     <div class="game-wrapper">
@@ -221,6 +221,7 @@
                     <button class="btn-mini active" id="btn-oa-mode-pvp">👥 Cùng máy</button>
                     <button class="btn-mini" id="btn-oa-mode-pve">🤖 Đấu Máy</button>
                     <button class="btn-mini" id="btn-oa-mode-online">🌐 Online</button>
+                    <button class="btn-mini speed-slow" id="btn-oa-speed" title="Bấm để đổi tốc độ chia sỏi">🐢 Tốc độ: Chậm</button>
                     <button class="btn-mini" id="btn-oa-reset">🔄 Ván mới</button>
                 </div>
             </header>
@@ -592,10 +593,10 @@
     <canvas id="confetti-canvas"></canvas>
 
     <!-- Scripts: Games modules & Master Controller -->
-    <script src="{{ url_for('static', filename='games/hub_online.js') }}?v=20261115_oanquan_hand_v5"></script>
-    <script src="{{ url_for('static', filename='games/caro.js') }}?v=20261115_oanquan_hand_v5"></script>
-    <script src="{{ url_for('static', filename='games/oanquan.js') }}?v=20261115_oanquan_hand_v5"></script>
-    <script src="{{ url_for('static', filename='games/doanthu.js') }}?v=20261115_oanquan_hand_v5"></script>
-    <script src="{{ url_for('static', filename='script.js') }}?v=20261115_oanquan_hand_v5"></script>
+    <script src="{{ url_for('static', filename='games/hub_online.js') }}?v=20261115_oanquan_slow_v6"></script>
+    <script src="{{ url_for('static', filename='games/caro.js') }}?v=20261115_oanquan_slow_v6"></script>
+    <script src="{{ url_for('static', filename='games/oanquan.js') }}?v=20261115_oanquan_slow_v6"></script>
+    <script src="{{ url_for('static', filename='games/doanthu.js') }}?v=20261115_oanquan_slow_v6"></script>
+    <script src="{{ url_for('static', filename='script.js') }}?v=20261115_oanquan_slow_v6"></script>
 </body>
 </html>

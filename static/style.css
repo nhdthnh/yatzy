@@ -1310,6 +1310,19 @@ body.light-theme {
     display: flex;
     justify-content: center;
     gap: 6px;
+    flex-wrap: wrap;
+}
+
+#btn-oa-speed.speed-slow {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    color: #92400e;
+}
+
+#btn-oa-speed.speed-fast {
+    background: #e0e7ff;
+    border-color: #6366f1;
+    color: #3730a3;
 }
 
 /* Bàn cờ Dân Gian */
@@ -1346,7 +1359,7 @@ body.light-theme {
     justify-content: center;
     opacity: 0;
     transform: translate3d(0, 0, 0) scale(0.6);
-    transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.15s ease;
+    transition: transform 0.38s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.18s ease;
 }
 
 .oa-hand-actor.active {
@@ -1454,11 +1467,12 @@ body.light-theme {
 }
 
 .oa-cell-dropping {
-    animation: cellDropPulse 0.18s ease;
+    animation: cellDropPulse 0.3s ease;
 }
 
 @keyframes cellDropPulse {
-    0% { transform: scale(1.07); }
+    0% { transform: scale(1.1); background: #fef08a !important; box-shadow: 0 0 10px rgba(245, 158, 11, 0.6); }
+    50% { transform: scale(1.05); }
     100% { transform: scale(1); }
 }
 
@@ -1609,7 +1623,7 @@ body.light-theme {
 
 .btn-dir {
     flex: 1;
-    padding: 8px;
+    padding: 8px 6px;
     background: #3b190a;
     color: #ffffff;
     border: none;
@@ -1617,6 +1631,12 @@ body.light-theme {
     font-weight: 800;
     font-size: 0.85rem;
     cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    line-height: 1.25;
 }
 
 .btn-dir:active {

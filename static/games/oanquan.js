@@ -18,6 +18,38 @@ const OAnQuanGame = (function() {
     let gameOver = false;
     let gameMode = 'pvp'; // 'pvp' (2 người), 'pve' (đấu máy), hoặc 'online'
     let lastAnimatedMoveId = null;
+    let dropSpeed = 'slow'; // 'slow' (Chậm rãi để người chơi kịp suy nghĩ - Mặc định), 'fast' (Nhanh)
+
+    function getSpeedTimings() {
+        if (dropSpeed === 'slow') {
+            return {
+                transitionSec: 0.38,
+                moveDelay: 380,       // Bàn tay lướt sang ô kế tiếp (380ms)
+                dropDelay: 240,       // Thả 1 viên sỏi xuống ô và đọng lại để nhìn rõ (240ms) -> Tổng 620ms/viên
+                scoopPause: 460,      // Dừng lại bốc sỏi ô tiếp theo
+                slapRaisePause: 360,  // Giơ tay lên chuẩn bị đập ô trống
+                slapHitPause: 400,    // Đập mạnh vào ô trống
+                eatPause: 700         // Thời gian tận hưởng số điểm ăn được
+            };
+        } else {
+            return {
+                transitionSec: 0.18,
+                moveDelay: 180,
+                dropDelay: 110,
+                scoopPause: 220,
+                slapRaisePause: 160,
+                slapHitPause: 220,
+                eatPause: 360
+            };
+        }
+    }
+
+    function getCellShortName(idx) {
+        if (idx === 5) return 'Quan Phải';
+        if (idx === 11) return 'Quan Trái';
+        if (idx >= 0 && idx <= 4) return `Dân ${idx + 1}`;
+        return `Dân ${idx - 5}`;
+    }
 
     function init() {
         resetGame();
@@ -149,6 +181,7 @@ const OAnQuanGame = (function() {
         const badgeEl = document.getElementById('oa-hand-badge');
         if (!handEl) return;
 
+        const timings = getSpeedTimings();
         const pos = getCellCenter(idx);
         handEl.style.transition = 'none';
         handEl.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
@@ -158,13 +191,15 @@ const OAnQuanGame = (function() {
 
         // Bật lại hiệu ứng lướt mượt sau khi nhảy đến ô đầu
         requestAnimationFrame(() => {
-            handEl.style.transition = 'transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.15s ease';
+            handEl.style.transition = `transform ${timings.transitionSec}s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.18s ease`;
         });
     }
 
     function moveHandTo(idx) {
         const handEl = document.getElementById('oa-hand-actor');
         if (!handEl) return;
+        const timings = getSpeedTimings();
+        handEl.style.transition = `transform ${timings.transitionSec}s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.18s ease`;
         const pos = getCellCenter(idx);
         handEl.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
     }
@@ -272,15 +307,23 @@ const OAnQuanGame = (function() {
         const btnLeft = document.getElementById('oa-btn-left');
         const btnRight = document.getElementById('oa-btn-right');
 
+        const count = board[idx].count;
+        const lastCW = (idx + count) % 12;
+        const lastCCW = (idx - count + 1200) % 12;
+
         // Chiều rải: 
         // 1: Thuận chiều kim đồng hồ (index tăng: 0 -> 1 -> ... -> 5)
         // -1: Ngược chiều kim đồng hồ (index giảm: 0 -> 11 -> 10 -> ...)
         if (btnLeft) {
+            btnLeft.innerHTML = `⬅️ Ngược Chiều Kim<br><small style="font-size:0.75rem;opacity:0.9;font-weight:600;">(Viên cuối rơi: ${getCellShortName(lastCCW)})</small>`;
             btnLeft.onclick = () => chooseDirection(-1);
         }
         if (btnRight) {
+            btnRight.innerHTML = `Thuận Chiều Kim ➡️<br><small style="font-size:0.75rem;opacity:0.9;font-weight:600;">(Viên cuối rơi: ${getCellShortName(lastCW)})</small>`;
             btnRight.onclick = () => chooseDirection(1);
         }
+
+        showActionHint(`💡 Ô <b>${getCellShortName(idx)}</b> có <b>${count} sỏi</b>. Chọn hướng đi: <b>Thuận</b> (viên cuối rơi ${getCellShortName(lastCW)}) hoặc <b>Ngược</b> (viên cuối rơi ${getCellShortName(lastCCW)}).`);
     }
 
     function hideDirections() {
@@ -313,8 +356,9 @@ const OAnQuanGame = (function() {
         isAnimating = true;
         hideDirections();
 
+        const timings = getSpeedTimings();
         const playerName = (currentPlayer === 1) ? 'An' : ((gameMode === 'pve') ? 'Máy' : 'Thành');
-        showActionHint(`👉 ${playerName} đang bốc sỏi tại ô ${startIdx + 1}...`);
+        showActionHint(`👉 ${playerName} đang bốc sỏi tại ô ${getCellShortName(startIdx)}...`);
 
         let curr = startIdx;
         let hand = board[curr].count;
@@ -325,21 +369,19 @@ const OAnQuanGame = (function() {
         showHandAt(curr, hand, '🫳');
         setHandState('scoop');
         playSound('click');
-        await sleep(240);
+        await sleep(timings.scoopPause);
         setHandSprite('✊');
         setHandState('');
-        await sleep(100);
-
-        const stepDelay = 220; // Tốc độ rải từng viên mượt mà, dễ quan sát hướng đi
+        await sleep(150);
 
         while (hand > 0) {
-            // 2. Rải từng viên sỏi theo hướng đã chọn
+            // 2. Rải từng viên sỏi theo hướng đã chọn (Chậm rãi, nhịp nhàng để dễ suy nghĩ)
             while (hand > 0) {
                 curr = (curr + dir + 12) % 12;
 
                 // Di chuyển bàn tay tới ô kế tiếp
                 moveHandTo(curr);
-                await sleep(stepDelay * 0.7);
+                await sleep(timings.moveDelay);
 
                 // Thả 1 viên sỏi vào ô
                 setHandState('drop');
@@ -351,11 +393,12 @@ const OAnQuanGame = (function() {
                 const cellEl = getCellElement(curr);
                 if (cellEl) {
                     cellEl.classList.add('oa-cell-dropping');
-                    setTimeout(() => cellEl.classList.remove('oa-cell-dropping'), 180);
+                    setTimeout(() => cellEl.classList.remove('oa-cell-dropping'), 260);
                 }
 
                 playSound('stone_drop');
-                await sleep(stepDelay * 0.3);
+                showActionHint(`👉 ${playerName} đang rải... ${getCellShortName(curr)} nhận 1 sỏi (còn ${hand} viên trên tay)`);
+                await sleep(timings.dropDelay);
                 setHandState('');
             }
 
@@ -365,9 +408,9 @@ const OAnQuanGame = (function() {
             // TRƯỜNG HỢP 1: Ô tiếp theo là Ô DÂN và CÓ SỎI -> Bốc tiếp rải tiếp!
             if (board[nextIdx].type === 'dan' && board[nextIdx].count > 0) {
                 moveHandTo(nextIdx);
-                await sleep(stepDelay);
+                await sleep(timings.moveDelay);
 
-                showActionHint(`🖐️ Bốc tiếp ${board[nextIdx].count} sỏi tại ô ${nextIdx + 1}...`);
+                showActionHint(`🖐️ Ô ${getCellShortName(nextIdx)} có ${board[nextIdx].count} sỏi -> Bốc tiếp để rải!`);
                 setHandState('scoop');
                 playSound('click');
 
@@ -377,9 +420,10 @@ const OAnQuanGame = (function() {
                 renderBoard();
 
                 curr = nextIdx;
-                await sleep(240);
+                await sleep(timings.scoopPause);
                 setHandSprite('✊');
                 setHandState('');
+                await sleep(150);
                 continue;
             }
 
@@ -393,18 +437,18 @@ const OAnQuanGame = (function() {
                     while (board[checkEmpty].count === 0 && board[eatIdx].count > 0) {
                         // Di chuyển bàn tay tới ô trống
                         moveHandTo(checkEmpty);
-                        await sleep(stepDelay * 0.8);
+                        await sleep(timings.moveDelay);
 
                         // Giơ tay lên chuẩn bị đập!
                         setHandSprite('🖐️');
                         setHandState('raise');
-                        showActionHint(`💥 ĐẬP VÀO Ô TRỐNG ĐỂ ĂN SỎI!`);
-                        await sleep(200);
+                        showActionHint(`💥 Ô ${getCellShortName(checkEmpty)} TRỐNG! Chuẩn bị ĐẬP ĂN ${board[eatIdx].count} sỏi ở ${getCellShortName(eatIdx)}!`);
+                        await sleep(timings.slapRaisePause);
 
                         // ĐẬP MẠNH XUỐNG Ô TRỐNG!
                         setHandState('slap');
                         triggerSlap(checkEmpty);
-                        await sleep(260);
+                        await sleep(timings.slapHitPause);
 
                         // Thu hoạch sỏi ở ô eatIdx
                         const eaten = board[eatIdx].count;
@@ -412,12 +456,12 @@ const OAnQuanGame = (function() {
                         board[eatIdx].hasBigQuan = false;
                         scores[currentPlayer] += eaten;
 
-                        showActionHint(`🎉 ${playerName} ĂN ĐƯỢC +${eaten} SỎI!`);
+                        showActionHint(`🎉 ${playerName} ĐẬP Ô TRỐNG VÀ ĂN ĐƯỢC +${eaten} SỎI!`);
                         playSound('score');
 
                         renderBoard();
                         updateDisplay();
-                        await sleep(400);
+                        await sleep(timings.eatPause);
 
                         setHandState('');
                         setHandSprite('✊');
@@ -431,7 +475,7 @@ const OAnQuanGame = (function() {
                     moveHandTo(nextIdx);
                     setHandSprite('🖐️');
                     showActionHint(`🚫 Gặp 2 ô trống liên tiếp -> Hết lượt!`);
-                    await sleep(350);
+                    await sleep(timings.eatPause);
                 }
             }
 
@@ -458,7 +502,7 @@ const OAnQuanGame = (function() {
 
         // Nếu là lượt máy (PVE)
         if (gameMode === 'pve' && currentPlayer === 2 && !gameOver) {
-            setTimeout(makeAiMove, 600);
+            setTimeout(makeAiMove, dropSpeed === 'slow' ? 900 : 500);
         }
     }
 
@@ -697,6 +741,26 @@ const OAnQuanGame = (function() {
                 if (modeOnline) modeOnline.classList.remove('active');
                 gameMode = 'pve';
                 resetGame(true);
+            });
+        }
+
+        const btnSpeed = document.getElementById('btn-oa-speed');
+        if (btnSpeed) {
+            btnSpeed.addEventListener('click', () => {
+                if (dropSpeed === 'slow') {
+                    dropSpeed = 'fast';
+                    btnSpeed.textContent = '⚡ Tốc độ: Nhanh';
+                    btnSpeed.classList.remove('speed-slow');
+                    btnSpeed.classList.add('speed-fast');
+                    showActionHint('⚡ Đã chuyển sang tốc độ: Nhanh');
+                } else {
+                    dropSpeed = 'slow';
+                    btnSpeed.textContent = '🐢 Tốc độ: Chậm';
+                    btnSpeed.classList.remove('speed-fast');
+                    btnSpeed.classList.add('speed-slow');
+                    showActionHint('🐢 Đã chuyển sang tốc độ: Chậm rãi để suy nghĩ');
+                }
+                playSound('click');
             });
         }
     }
