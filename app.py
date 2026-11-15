@@ -602,10 +602,17 @@ def init_doanthu_state():
 
 def format_hub_room_state(room, caller_player_id):
     players = room["players"]
-    caller_idx = 0 if (players and players[0]["id"] == caller_player_id) else (1 if len(players) > 1 and players[1]["id"] == caller_player_id else -1)
-    caller_name = players[caller_idx]["name"] if caller_idx in (0, 1) else ""
+    caller_player = next((p for p in players if p["id"] == caller_player_id), None)
+    if caller_player:
+        caller_idx = 0 if caller_player["name"] == "An" else 1
+        caller_name = caller_player["name"]
+    else:
+        caller_idx = -1
+        caller_name = ""
+
     opp_idx = 1 - caller_idx if caller_idx in (0, 1) else -1
-    opp_name = players[opp_idx]["name"] if opp_idx in (0, 1) and opp_idx < len(players) else ""
+    opp_player = next((p for p in players if p["id"] != caller_player_id), None)
+    opp_name = opp_player["name"] if opp_player else ("Thành" if caller_name == "An" else "An")
     current_idx = room["state"].get("current_player_idx", 0)
 
     can_act = False
@@ -722,7 +729,10 @@ def hub_join():
 
     p2_id = uuid.uuid4().hex
 
-    room["players"].append({"id": p2_id, "name": p2_name})
+    p1_obj = room["players"][0]
+    p2_obj = {"id": p2_id, "name": p2_name}
+    # Luôn sắp xếp để An là Player 0 và Thành là Player 1
+    room["players"] = [p1_obj, p2_obj] if p1_name == "An" else [p2_obj, p1_obj]
     room["status"] = "choosing_secret" if room["game_type"] == "doanthu" else "playing"
     room["last_activity"] = time.time()
 
@@ -792,9 +802,11 @@ def hub_action(room_code):
     action = data.get("action", "")
 
     players = room["players"]
-    caller_idx = 0 if (players and players[0]["id"] == caller_player_id) else (1 if len(players) > 1 and players[1]["id"] == caller_player_id else -1)
-    if caller_idx == -1:
+    caller_player = next((p for p in players if p["id"] == caller_player_id), None)
+    if not caller_player:
         return jsonify({"error": "Người chơi không hợp lệ!"}), 403
+
+    caller_idx = 0 if caller_player["name"] == "An" else 1
 
     gt = room["game_type"]
     state = room["state"]

@@ -639,9 +639,9 @@ const OAnQuanGame = (function() {
         const p2Title = (gameMode === 'pve') ? 'Máy' : 'Thành';
 
         if (s1 > s2) {
-            showWinner(`AN CHIẾN THẮNG! 🏆 (${s1} vs ${s2})`);
+            showWinner(`AN CHIẾN THẮNG VỚI ${s1} ĐIỂM! 🏆`);
         } else if (s2 > s1) {
-            showWinner(`${p2Title.toUpperCase()} CHIẾN THẮNG! 🏆 (${s2} vs ${s1})`);
+            showWinner(`${p2Title.toUpperCase()} CHIẾN THẮNG VỚI ${s2} ĐIỂM! 🏆`);
         } else {
             showWinner(`HÒA NHAU! 🤝 (${s1} - ${s2})`);
         }
@@ -822,11 +822,16 @@ const OAnQuanGame = (function() {
 
         if (room.status === 'game_over') {
             gameOver = true;
-            if (st.winner === 'tie') {
-                showWinner('HÒA NHAU! 🤝');
-            } else if (st.winner !== null) {
-                const winName = room.players[st.winner]?.name || (st.winner === 0 ? 'An' : 'Thành');
-                showWinner(`${winName.toUpperCase()} CHIẾN THẮNG VỚI ${scores[st.winner + 1]} ĐIỂM! 🏆`);
+            const s1 = (scores && scores[1] !== undefined) ? scores[1] : (st.scores ? st.scores[0] : 0);
+            const s2 = (scores && scores[2] !== undefined) ? scores[2] : (st.scores ? st.scores[1] : 0);
+
+            if (st.winner === 'tie' || s1 === s2) {
+                showWinner(`HÒA NHAU! 🤝 (${s1} - ${s2})`);
+            } else if (s1 > s2) {
+                showWinner(`AN CHIẾN THẮNG VỚI ${s1} ĐIỂM! 🏆`);
+                playSound('celebrate');
+            } else {
+                showWinner(`THÀNH CHIẾN THẮNG VỚI ${s2} ĐIỂM! 🏆`);
                 playSound('celebrate');
             }
         } else if (!isAnimating) {
