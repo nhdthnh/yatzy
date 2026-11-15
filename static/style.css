@@ -1265,52 +1265,109 @@ body.light-theme {
     background: #f7ede0;
     border: 1.5px solid #e2d2bc;
     border-radius: 12px;
-    padding: 6px 10px;
+    padding: 8px 10px;
     margin-bottom: 8px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
-.oa-scores {
+/* Dòng chỉ báo lượt chơi */
+.oa-turn-bar-wrap {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
+}
+
+.oa-turn-bar {
+    background: #ffffff;
+    border: 1.5px solid #dcd0be;
+    border-radius: 20px;
+    padding: 3px 14px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #5c3210;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    display: inline-flex;
     align-items: center;
+    gap: 4px;
+    letter-spacing: 0.3px;
+}
+
+/* 2 Thẻ điểm người chơi dạng Grid 50-50 cân đối */
+.oa-scores-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
 }
 
 .oa-score-card {
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: space-between;
     background: #ffffff;
-    padding: 4px 10px;
+    padding: 6px 10px;
     border-radius: 8px;
-    border: 1px solid #dcd0be;
+    border: 1.5px solid #dcd0be;
+    transition: all 0.2s ease;
 }
 
-.oa-score-card .avatar-tag {
-    font-size: 0.76rem;
+.oa-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.oa-card-name {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #451a03;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.oa-card-sub {
+    font-size: 0.66rem;
     font-weight: 700;
-    color: #5c3a21;
+    color: #8c6f55;
+    white-space: nowrap;
 }
 
 .oa-score-card .score-num {
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     font-weight: 900;
     color: #3b190a;
+    line-height: 1;
+    margin-left: 6px;
 }
 
-.oa-turn-info {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: #7a4622;
+/* Thẻ của người chơi đang đến lượt đi */
+.oa-score-card.turn-active {
+    border-color: #f59e0b;
+    background: #fffbeb;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
 }
 
+.oa-score-card.my-perspective {
+    border-left: 3.5px solid #10b981;
+}
+
+/* 6 Nút điều khiển bố cục lưới 3x2 đều đặn */
 .oa-mode-controls {
-    display: flex;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
-    flex-wrap: wrap;
+}
+
+.oa-mode-controls .btn-mini {
+    padding: 6px 4px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.72rem;
+    font-weight: 700;
 }
 
 #btn-oa-speed.speed-slow {
@@ -1551,16 +1608,17 @@ body.light-theme {
 
 /* 2 Ô Quan hình bán nguyệt */
 .oa-quan-cell {
-    width: 58px;
-    height: 120px;
+    width: 60px;
+    height: 126px;
     background: #e2cbaf;
     border: 2px solid #a86c39;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: space-evenly;
     position: relative;
     box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.15);
+    padding: 6px 2px 4px 2px;
 }
 
 .oa-quan-cell.left-quan {
@@ -1577,19 +1635,24 @@ body.light-theme {
     font-size: 0.52rem;
     font-weight: 900;
     color: #5c3210;
-    position: absolute;
-    top: 6px;
+    line-height: 1;
 }
 
 .oa-quan-cell .stone-count {
     font-size: 1.3rem;
     font-weight: 900;
     color: #3b190a;
+    line-height: 1;
 }
 
 .big-quan-stone {
-    font-size: 1.6rem;
-    margin-top: 2px;
+    font-size: 1.45rem;
+    line-height: 1;
+}
+
+.oa-quan-cell .stones-visual {
+    max-width: 44px;
+    margin-top: 0;
 }
 
 /* 10 Ô Dân ở giữa */
@@ -1598,20 +1661,20 @@ body.light-theme {
     flex: 1;
     display: flex;
     flex-direction: column-reverse; /* Mặc định góc nhìn An: row-an ở dưới, row-thanh ở trên */
-    gap: 3px;
-    padding: 0 3px;
+    gap: 4px;
+    padding: 0 4px;
 }
 
 .oa-dan-row {
     display: flex;
-    gap: 3px;
+    gap: 4px;
 }
 
 .oa-dan-cell {
     background: #f7eee2;
     border: 1.5px solid #c7ad8e;
     border-radius: 8px;
-    height: 58px;
+    height: 61px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1621,6 +1684,7 @@ body.light-theme {
     transition: transform 0.1s ease, border-color 0.1s ease;
     flex: 1;
     min-width: 0;
+    padding-top: 2px;
 }
 
 /* ==========================================================
@@ -1650,12 +1714,6 @@ body.light-theme {
     flex-direction: row-reverse; /* Xếp từ trái sang phải: 4, 3, 2, 1, 0 */
 }
 
-.oa-score-card.my-perspective {
-    border-color: #f59e0b;
-    background: #fffbeb;
-    box-shadow: 0 0 8px rgba(245, 158, 11, 0.35);
-}
-
 .oa-dan-cell.selectable {
     background: #ffffff;
     border-color: var(--accent-green);
@@ -1680,9 +1738,10 @@ body.light-theme {
 }
 
 .oa-dan-cell .stone-count {
-    font-size: 1.15rem;
+    font-size: 1.18rem;
     font-weight: 900;
     color: #3b190a;
+    line-height: 1;
 }
 
 .stones-visual {
@@ -1690,13 +1749,13 @@ body.light-theme {
     flex-wrap: wrap;
     justify-content: center;
     gap: 2px;
-    max-width: 38px;
-    margin-top: 1px;
+    max-width: 36px;
+    margin-top: 2px;
 }
 
 .mini-stone {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background: #5c3a21;
 }

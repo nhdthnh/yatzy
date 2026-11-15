@@ -158,7 +158,7 @@ const OAnQuanGame = (function() {
 
         if (countEl) countEl.textContent = count;
 
-        // Vẽ sỏi nhẹ nhàng (tối đa hiển thị 8 viên visual để tiết kiệm RAM)
+        // Vẽ sỏi nhẹ nhàng (tối đa hiển thị 5 viên visual để tiết kiệm RAM & không tràn khung)
         if (visualEl) {
             visualEl.innerHTML = '';
             if (cellData.hasBigQuan) {
@@ -166,12 +166,21 @@ const OAnQuanGame = (function() {
                 bigStone.className = 'big-quan-stone';
                 bigStone.textContent = '👑';
                 visualEl.appendChild(bigStone);
-            }
-            const visualCount = Math.min(count, 8);
-            for (let k = 0; k < visualCount; k++) {
-                const s = document.createElement('span');
-                s.className = 'mini-stone';
-                visualEl.appendChild(s);
+                // Với ô quan có quan lớn, nếu có thêm sỏi con (tổng > 10), chỉ hiển thị tối đa 3 chấm nhỏ phụ
+                const extraPebbles = Math.min(Math.max(0, count - 10), 3);
+                for (let k = 0; k < extraPebbles; k++) {
+                    const s = document.createElement('span');
+                    s.className = 'mini-stone';
+                    visualEl.appendChild(s);
+                }
+            } else {
+                // Ô dân hoặc ô quan đã ăn mất quan lớn: hiển thị tối đa 5 chấm sỏi
+                const visualCount = Math.min(count, 5);
+                for (let k = 0; k < visualCount; k++) {
+                    const s = document.createElement('span');
+                    s.className = 'mini-stone';
+                    visualEl.appendChild(s);
+                }
             }
         }
 
@@ -690,18 +699,34 @@ const OAnQuanGame = (function() {
         const p2Card = document.getElementById('oa-card-p2');
         const p1Tag = document.getElementById('oa-tag-p1');
         const p2Tag = document.getElementById('oa-tag-p2');
+        const p2Name = document.getElementById('oa-name-p2');
+
+        if (p2Name) {
+            p2Name.textContent = (gameMode === 'pve') ? '🤖 Máy' : '👦 Thành';
+        }
 
         if (p1Tag && p2Tag) {
             if (isFlipped) {
-                p1Tag.innerHTML = '👩 An <small style="font-size:0.68rem;opacity:0.8;">(Đối diện 👆)</small>';
-                p2Tag.innerHTML = '👦 Thành <small style="font-size:0.68rem;opacity:0.8;">(Phía bạn 👇)</small>';
+                p1Tag.textContent = 'Đối diện 👆';
+                p2Tag.textContent = 'Phía bạn 👇';
                 if (p2Card) p2Card.classList.add('my-perspective');
                 if (p1Card) p1Card.classList.remove('my-perspective');
             } else {
-                p1Tag.innerHTML = '👩 An <small style="font-size:0.68rem;opacity:0.8;">(Phía bạn 👇)</small>';
-                p2Tag.innerHTML = '👦 Thành <small style="font-size:0.68rem;opacity:0.8;">(Đối diện 👆)</small>';
+                p1Tag.textContent = 'Phía bạn 👇';
+                p2Tag.textContent = 'Đối diện 👆';
                 if (p1Card) p1Card.classList.add('my-perspective');
                 if (p2Card) p2Card.classList.remove('my-perspective');
+            }
+        }
+
+        // Đánh dấu thẻ của người chơi đang đến lượt đi (turn-active)
+        if (p1Card && p2Card) {
+            if (currentPlayer === 1) {
+                p1Card.classList.add('turn-active');
+                p2Card.classList.remove('turn-active');
+            } else {
+                p2Card.classList.add('turn-active');
+                p1Card.classList.remove('turn-active');
             }
         }
 
@@ -719,13 +744,13 @@ const OAnQuanGame = (function() {
         }
 
         const turnName = document.getElementById('oa-turn-name');
-        if (!turnName) return;
-
-        if (currentPlayer === 1) {
-            turnName.innerHTML = `Lượt: 👩 <strong>An</strong>`;
-        } else {
-            const oppName = (gameMode === 'pve') ? '🤖 Máy' : '👦 <strong>Thành</strong>';
-            turnName.innerHTML = `Lượt: ${oppName}`;
+        if (turnName) {
+            if (currentPlayer === 1) {
+                turnName.innerHTML = `LƯỢT CỦA: 👩 <strong>AN</strong>`;
+            } else {
+                const oppName = (gameMode === 'pve') ? '🤖 <strong>MÁY</strong>' : '👦 <strong>THÀNH</strong>';
+                turnName.innerHTML = `LƯỢT CỦA: ${oppName}`;
+            }
         }
     }
 
