@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#fbf8f3">
     <title>Kho Game 2 Người - An & Thành</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20261115_oanquan_slow_v6">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20261115_oanquan_flip_v7">
 </head>
 <body class="light-theme">
     <div class="game-wrapper">
@@ -207,13 +207,13 @@
         <section id="game-view-oanquan" class="game-view hidden">
             <header class="oa-header">
                 <div class="oa-scores">
-                    <div class="oa-score-card oa-p1">
-                        <span class="avatar-tag">👩 An</span>
+                    <div class="oa-score-card oa-p1" id="oa-card-p1">
+                        <span class="avatar-tag" id="oa-tag-p1">👩 An</span>
                         <span class="score-num" id="oa-score-p1">0</span>
                     </div>
                     <div class="oa-turn-info" id="oa-turn-name">Lượt: 👩 <strong>An</strong></div>
-                    <div class="oa-score-card oa-p2">
-                        <span class="avatar-tag">👦 Thành</span>
+                    <div class="oa-score-card oa-p2" id="oa-card-p2">
+                        <span class="avatar-tag" id="oa-tag-p2">👦 Thành</span>
                         <span class="score-num" id="oa-score-p2">0</span>
                     </div>
                 </div>
@@ -221,6 +221,7 @@
                     <button class="btn-mini active" id="btn-oa-mode-pvp">👥 Cùng máy</button>
                     <button class="btn-mini" id="btn-oa-mode-pve">🤖 Đấu Máy</button>
                     <button class="btn-mini" id="btn-oa-mode-online">🌐 Online</button>
+                    <button class="btn-mini" id="btn-oa-flip" title="Đảo ngược bàn cờ để ngồi đối mặt">🔄 Đảo bàn cờ</button>
                     <button class="btn-mini speed-slow" id="btn-oa-speed" title="Bấm để đổi tốc độ chia sỏi">🐢 Tốc độ: Chậm</button>
                     <button class="btn-mini" id="btn-oa-reset">🔄 Ván mới</button>
                 </div>
@@ -259,6 +260,16 @@
                     <span class="slap-label">ĐẬP ĂN!</span>
                 </div>
 
+                <!-- Popup chọn hướng nổi trực tiếp ngay trên ô sỏi (như hình mẫu) -->
+                <div class="oa-popup-dirs hidden" id="oa-popup-dirs">
+                    <button class="oa-pill-btn btn-sow-left" id="oa-popup-btn-left">
+                        <span class="pill-arrow">←</span> Rải trái
+                    </button>
+                    <button class="oa-pill-btn btn-sow-right" id="oa-popup-btn-right">
+                        Rải phải <span class="pill-arrow">→</span>
+                    </button>
+                </div>
+
                 <!-- Quan Trái -->
                 <div class="oa-quan-cell left-quan" id="oa-quan-left">
                     <div class="quan-label">QUAN TRÁI</div>
@@ -267,17 +278,17 @@
                 </div>
 
                 <!-- 10 Ô Dân ở giữa (2 hàng x 5 ô) -->
-                <div class="oa-dan-grid">
-                    <!-- Hàng trên: 5 ô của An (0 đến 4) -->
-                    <div class="oa-dan-row top-row">
+                <div class="oa-dan-grid" id="oa-dan-grid">
+                    <!-- Hàng của An (0 đến 4) -->
+                    <div class="oa-dan-row top-row row-an" id="oa-dan-row-an">
                         <div class="oa-dan-cell" id="oa-cell-0"><span class="cell-num">1</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
                         <div class="oa-dan-cell" id="oa-cell-1"><span class="cell-num">2</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
                         <div class="oa-dan-cell" id="oa-cell-2"><span class="cell-num">3</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
                         <div class="oa-dan-cell" id="oa-cell-3"><span class="cell-num">4</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
                         <div class="oa-dan-cell" id="oa-cell-4"><span class="cell-num">5</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
                     </div>
-                    <!-- Hàng dưới: 5 ô của Thành (10 đến 6) -->
-                    <div class="oa-dan-row bottom-row">
+                    <!-- Hàng của Thành (10 đến 6) -->
+                    <div class="oa-dan-row bottom-row row-thanh" id="oa-dan-row-thanh">
                         <div class="oa-dan-cell" id="oa-cell-10"><span class="cell-num">10</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
                         <div class="oa-dan-cell" id="oa-cell-9"><span class="cell-num">9</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
                         <div class="oa-dan-cell" id="oa-cell-8"><span class="cell-num">8</span><span class="stone-count">5</span><div class="stones-visual"></div></div>
@@ -593,10 +604,10 @@
     <canvas id="confetti-canvas"></canvas>
 
     <!-- Scripts: Games modules & Master Controller -->
-    <script src="{{ url_for('static', filename='games/hub_online.js') }}?v=20261115_oanquan_slow_v6"></script>
-    <script src="{{ url_for('static', filename='games/caro.js') }}?v=20261115_oanquan_slow_v6"></script>
-    <script src="{{ url_for('static', filename='games/oanquan.js') }}?v=20261115_oanquan_slow_v6"></script>
-    <script src="{{ url_for('static', filename='games/doanthu.js') }}?v=20261115_oanquan_slow_v6"></script>
-    <script src="{{ url_for('static', filename='script.js') }}?v=20261115_oanquan_slow_v6"></script>
+    <script src="{{ url_for('static', filename='games/hub_online.js') }}?v=20261115_oanquan_flip_v7"></script>
+    <script src="{{ url_for('static', filename='games/caro.js') }}?v=20261115_oanquan_flip_v7"></script>
+    <script src="{{ url_for('static', filename='games/oanquan.js') }}?v=20261115_oanquan_flip_v7"></script>
+    <script src="{{ url_for('static', filename='games/doanthu.js') }}?v=20261115_oanquan_flip_v7"></script>
+    <script src="{{ url_for('static', filename='script.js') }}?v=20261115_oanquan_flip_v7"></script>
 </body>
 </html>

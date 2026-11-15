@@ -1482,6 +1482,73 @@ body.light-theme {
     box-shadow: 0 0 8px rgba(245, 158, 11, 0.5) !important;
 }
 
+/* ==========================================================
+   POPUP CHỌN HƯỚNG NỔI TRỰC TIẾP TRÊN Ô (RẢI TRÁI / RẢI PHẢI)
+   ========================================================== */
+.oa-popup-dirs {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 130;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    transform: translate3d(-50%, -100%, 0);
+    pointer-events: auto;
+    filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.25));
+    animation: popupPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    white-space: nowrap;
+}
+
+.oa-popup-dirs.hidden {
+    display: none !important;
+}
+
+.oa-popup-dirs.pos-below {
+    transform: translate3d(-50%, 0%, 0);
+    animation: popupPopBelow 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popupPop {
+    0% { transform: translate3d(-50%, -80%, 0) scale(0.65); opacity: 0; }
+    100% { transform: translate3d(-50%, -100%, 0) scale(1); opacity: 1; }
+}
+
+@keyframes popupPopBelow {
+    0% { transform: translate3d(-50%, -20%, 0) scale(0.65); opacity: 0; }
+    100% { transform: translate3d(-50%, 0%, 0) scale(1); opacity: 1; }
+}
+
+.oa-pill-btn {
+    background: linear-gradient(180deg, #fef08a 0%, #fde047 50%, #facc15 100%);
+    border: 1.5px solid #d97706;
+    border-radius: 999px;
+    color: #451a03;
+    font-size: 0.82rem;
+    font-weight: 800;
+    padding: 6px 14px;
+    cursor: pointer;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    user-select: none;
+    touch-action: manipulation;
+    transition: transform 0.1s ease, filter 0.1s ease;
+}
+
+.oa-pill-btn:active {
+    transform: scale(0.93);
+    filter: brightness(0.92);
+}
+
+.oa-pill-btn .pill-arrow {
+    font-size: 0.95rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
 /* 2 Ô Quan hình bán nguyệt */
 .oa-quan-cell {
     width: 58px;
@@ -1497,10 +1564,12 @@ body.light-theme {
 }
 
 .oa-quan-cell.left-quan {
+    order: 1;
     border-radius: 60px 0 0 60px;
 }
 
 .oa-quan-cell.right-quan {
+    order: 3;
     border-radius: 0 60px 60px 0;
 }
 
@@ -1525,16 +1594,16 @@ body.light-theme {
 
 /* 10 Ô Dân ở giữa */
 .oa-dan-grid {
+    order: 2;
     flex: 1;
     display: flex;
-    flex-direction: column;
+    flex-direction: column-reverse; /* Mặc định góc nhìn An: row-an ở dưới, row-thanh ở trên */
     gap: 3px;
     padding: 0 3px;
 }
 
 .oa-dan-row {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    display: flex;
     gap: 3px;
 }
 
@@ -1550,6 +1619,41 @@ body.light-theme {
     position: relative;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
     transition: transform 0.1s ease, border-color 0.1s ease;
+    flex: 1;
+    min-width: 0;
+}
+
+/* ==========================================================
+   ĐẢO NGƯỢC BÀN CỜ (GÓC NHÌN ĐỐI DIỆN - THÀNH)
+   ========================================================== */
+.oa-board-container.flipped {
+    flex-direction: row-reverse;
+}
+
+.oa-board-container.flipped .oa-quan-cell.left-quan {
+    border-radius: 0 60px 60px 0;
+}
+
+.oa-board-container.flipped .oa-quan-cell.right-quan {
+    border-radius: 60px 0 0 60px;
+}
+
+.oa-board-container.flipped .oa-dan-grid {
+    flex-direction: column; /* row-thanh ở dưới, row-an ở trên */
+}
+
+.oa-board-container.flipped .oa-dan-row.row-thanh {
+    flex-direction: row-reverse; /* Xếp từ trái sang phải: 6, 7, 8, 9, 10 */
+}
+
+.oa-board-container.flipped .oa-dan-row.row-an {
+    flex-direction: row-reverse; /* Xếp từ trái sang phải: 4, 3, 2, 1, 0 */
+}
+
+.oa-score-card.my-perspective {
+    border-color: #f59e0b;
+    background: #fffbeb;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.35);
 }
 
 .oa-dan-cell.selectable {

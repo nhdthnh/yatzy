@@ -19,6 +19,51 @@ const OAnQuanGame = (function() {
     let gameMode = 'pvp'; // 'pvp' (2 người), 'pve' (đấu máy), hoặc 'online'
     let lastAnimatedMoveId = null;
     let dropSpeed = 'slow'; // 'slow' (Chậm rãi để người chơi kịp suy nghĩ - Mặc định), 'fast' (Nhanh)
+    let isFlipped = false; // false: Góc nhìn An (An ở dưới); true: Góc nhìn Thành (Thành ở dưới)
+    let autoFlippedForRoom = null;
+
+    function toggleBoardFlip(forceVal) {
+        if (typeof forceVal === 'boolean') {
+            isFlipped = forceVal;
+        } else {
+            isFlipped = !isFlipped;
+        }
+
+        const boardEl = document.getElementById('oa-board-container');
+        const btnFlip = document.getElementById('btn-oa-flip');
+
+        if (boardEl) {
+            if (isFlipped) {
+                boardEl.classList.add('flipped');
+            } else {
+                boardEl.classList.remove('flipped');
+            }
+        }
+
+        if (btnFlip) {
+            btnFlip.textContent = isFlipped ? '🔄 Góc nhìn: Thành' : '🔄 Góc nhìn: An';
+            btnFlip.title = isFlipped ? 'Đang xem góc nhìn của Thành (Hàng Thành ở dưới). Bấm để đổi sang An.' : 'Đang xem góc nhìn của An (Hàng An ở dưới). Bấm để đổi sang Thành.';
+        }
+
+        hideDirections();
+        renderBoard();
+        updateDisplay();
+    }
+
+    function getVisualDirections(idx) {
+        // Tính toán xem chiều đi nào thực sự sang TRÁI (←) và chiều nào sang PHẢI (→) trên màn hình
+        const nextCW = (idx + 1) % 12;
+        const nextCCW = (idx - 1 + 12) % 12;
+        const centerCW = getCellCenter(nextCW);
+        const centerCCW = getCellCenter(nextCCW);
+
+        // Chiều nào có tọa độ x nhỏ hơn (bên trái màn hình) là Rải Trái
+        if (centerCW.x < centerCCW.x) {
+            return { leftDir: 1, rightDir: -1, leftNextIdx: nextCW, rightNextIdx: nextCCW };
+        } else {
+            return { leftDir: -1, rightDir: 1, leftNextIdx: nextCCW, rightNextIdx: nextCW };
+        }
+    }
 
     function getSpeedTimings() {
         if (dropSpeed === 'slow') {
@@ -298,35 +343,67 @@ const OAnQuanGame = (function() {
     }
 
     function showDirections(idx) {
-        const dirBox = document.getElementById('oa-direction-picker');
-        if (!dirBox) return;
-
         highlightDirectionPreviews(idx);
-        dirBox.classList.remove('hidden');
-
-        const btnLeft = document.getElementById('oa-btn-left');
-        const btnRight = document.getElementById('oa-btn-right');
 
         const count = board[idx].count;
-        const lastCW = (idx + count) % 12;
-        const lastCCW = (idx - count + 1200) % 12;
+        const cellCenter = getCellCenter(idx);
+        const cellEl = getCellElement(idx);
+        const cellH = cellEl ? cellEl.offsetHeight : 58;
 
-        // Chiều rải: 
-        // 1: Thuận chiều kim đồng hồ (index tăng: 0 -> 1 -> ... -> 5)
-        // -1: Ngược chiều kim đồng hồ (index giảm: 0 -> 11 -> 10 -> ...)
-        if (btnLeft) {
-            btnLeft.innerHTML = `⬅️ Ngược Chiều Kim<br><small style="font-size:0.75rem;opacity:0.9;font-weight:600;">(Viên cuối rơi: ${getCellShortName(lastCCW)})</small>`;
-            btnLeft.onclick = () => chooseDirection(-1);
+        const { leftDir, rightDir, leftNextIdx, rightNextIdx } = getVisualDirections(idx);
+
+        // 1. Cập nhật Popup nổi trực tiếp trên ô (như hình mẫu)
+        const popup = document.getElementById('oa-popup-dirs');
+        const pBtnLeft = document.getElementById('oa-popup-btn-left');
+        const pBtnRight = document.getElementById('oa-popup-btn-right');
+
+        if (pBtnLeft) {
+            pBtnLeft.onclick = (e) => {
+                e.stopPropagation();
+                chooseDirection(leftDir);
+            };
         }
-        if (btnRight) {
-            btnRight.innerHTML = `Thuận Chiều Kim ➡️<br><small style="font-size:0.75rem;opacity:0.9;font-weight:600;">(Viên cuối rơi: ${getCellShortName(lastCW)})</small>`;
-            btnRight.onclick = () => chooseDirection(1);
+        if (pBtnRight) {
+            pBtnRight.onclick = (e) => {
+                e.stopPropagation();
+                chooseDirection(rightDir);
+            };
         }
 
-        showActionHint(`💡 Ô <b>${getCellShortName(idx)}</b> có <b>${count} sỏi</b>. Chọn hướng đi: <b>Thuận</b> (viên cuối rơi ${getCellShortName(lastCW)}) hoặc <b>Ngược</b> (viên cuối rơi ${getCellShortName(lastCCW)}).`);
+        if (popup) {
+            popup.style.left = `${cellCenter.x}px`;
+            // Nếu ô nằm sát mép trên (< 55px từ đỉnh bàn cờ), hiển thị popup bên dưới để không bị tràn
+            if (cellCenter.y < 55) {
+                popup.style.top = `${cellCenter.y + cellH / 2 + 8}px`;
+                popup.classList.add('pos-below');
+            } else {
+                popup.style.top = `${cellCenter.y - cellH / 2 - 8}px`;
+                popup.classList.remove('pos-below');
+            }
+            popup.classList.remove('hidden');
+        }
+
+        // 2. Dự phòng thanh bấm cũ bên dưới nếu có
+        const dirBox = document.getElementById('oa-direction-picker');
+        if (dirBox) {
+            const btnLeft = document.getElementById('oa-btn-left');
+            const btnRight = document.getElementById('oa-btn-right');
+            if (btnLeft) {
+                btnLeft.innerHTML = `⬅️ Rải trái (${getCellShortName(leftNextIdx)})`;
+                btnLeft.onclick = () => chooseDirection(leftDir);
+            }
+            if (btnRight) {
+                btnRight.innerHTML = `Rải phải ➡️ (${getCellShortName(rightNextIdx)})`;
+                btnRight.onclick = () => chooseDirection(rightDir);
+            }
+        }
+
+        showActionHint(`👉 Đang chọn ô có <b>${count} sỏi</b>. Bấm <b>← Rải trái</b> hoặc <b>Rải phải →</b> để đi!`);
     }
 
     function hideDirections() {
+        const popup = document.getElementById('oa-popup-dirs');
+        if (popup) popup.classList.add('hidden');
         const dirBox = document.getElementById('oa-direction-picker');
         if (dirBox) dirBox.classList.add('hidden');
         clearDirectionPreviews();
@@ -608,6 +685,39 @@ const OAnQuanGame = (function() {
         if (s1El) s1El.textContent = scores[1];
         if (s2El) s2El.textContent = scores[2];
 
+        // Cập nhật nhãn và hiệu ứng góc nhìn bàn cờ trên thẻ điểm
+        const p1Card = document.getElementById('oa-card-p1');
+        const p2Card = document.getElementById('oa-card-p2');
+        const p1Tag = document.getElementById('oa-tag-p1');
+        const p2Tag = document.getElementById('oa-tag-p2');
+
+        if (p1Tag && p2Tag) {
+            if (isFlipped) {
+                p1Tag.innerHTML = '👩 An <small style="font-size:0.68rem;opacity:0.8;">(Đối diện 👆)</small>';
+                p2Tag.innerHTML = '👦 Thành <small style="font-size:0.68rem;opacity:0.8;">(Phía bạn 👇)</small>';
+                if (p2Card) p2Card.classList.add('my-perspective');
+                if (p1Card) p1Card.classList.remove('my-perspective');
+            } else {
+                p1Tag.innerHTML = '👩 An <small style="font-size:0.68rem;opacity:0.8;">(Phía bạn 👇)</small>';
+                p2Tag.innerHTML = '👦 Thành <small style="font-size:0.68rem;opacity:0.8;">(Đối diện 👆)</small>';
+                if (p1Card) p1Card.classList.add('my-perspective');
+                if (p2Card) p2Card.classList.remove('my-perspective');
+            }
+        }
+
+        // Cập nhật nhãn Quan theo góc nhìn
+        const qLeftLabel = document.querySelector('#oa-quan-left .quan-label');
+        const qRightLabel = document.querySelector('#oa-quan-right .quan-label');
+        if (qLeftLabel && qRightLabel) {
+            if (isFlipped) {
+                qLeftLabel.textContent = 'QUAN PHẢI';
+                qRightLabel.textContent = 'QUAN TRÁI';
+            } else {
+                qLeftLabel.textContent = 'QUAN TRÁI';
+                qRightLabel.textContent = 'QUAN PHẢI';
+            }
+        }
+
         const turnName = document.getElementById('oa-turn-name');
         if (!turnName) return;
 
@@ -651,6 +761,14 @@ const OAnQuanGame = (function() {
         if (modeOnline) modeOnline.classList.add('active');
         if (modePvP) modePvP.classList.remove('active');
         if (modePvE) modePvE.classList.remove('active');
+
+        // Tự động đảo bàn cờ cho người chơi 2 (Thành) trong phòng Online để mỗi người đều thấy hàng của mình ở dưới
+        if (typeof room.caller_idx === 'number') {
+            if (autoFlippedForRoom !== room.room_code) {
+                autoFlippedForRoom = room.room_code;
+                toggleBoardFlip(room.caller_idx === 1);
+            }
+        }
 
         const st = room.state;
 
@@ -729,6 +847,7 @@ const OAnQuanGame = (function() {
                 if (modePvE) modePvE.classList.remove('active');
                 if (modeOnline) modeOnline.classList.remove('active');
                 gameMode = 'pvp';
+                autoFlippedForRoom = null;
                 resetGame(true);
             });
         }
@@ -740,9 +859,27 @@ const OAnQuanGame = (function() {
                 if (modePvP) modePvP.classList.remove('active');
                 if (modeOnline) modeOnline.classList.remove('active');
                 gameMode = 'pve';
+                autoFlippedForRoom = null;
                 resetGame(true);
             });
         }
+
+        const btnFlip = document.getElementById('btn-oa-flip');
+        if (btnFlip) {
+            btnFlip.addEventListener('click', () => {
+                toggleBoardFlip();
+                playSound('click');
+            });
+        }
+
+        // Bấm ngoài ô sỏi và ngoài popup sẽ đóng popup chọn hướng
+        document.addEventListener('pointerdown', (e) => {
+            if (!isAnimating && !e.target.closest('.oa-dan-cell') && !e.target.closest('.oa-popup-dirs')) {
+                hideDirections();
+                selectedCell = null;
+                renderBoard();
+            }
+        });
 
         const btnSpeed = document.getElementById('btn-oa-speed');
         if (btnSpeed) {
