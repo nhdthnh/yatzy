@@ -357,6 +357,10 @@ const HubOnline = (function() {
     }
 
     function switchHubTab(gameType) {
+        if (typeof window.switchGameTab === 'function') {
+            window.switchGameTab(gameType);
+            return;
+        }
         document.querySelectorAll('.hub-tab-btn').forEach(btn => {
             if (btn.dataset.gameTarget === gameType) {
                 btn.classList.add('active');

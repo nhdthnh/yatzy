@@ -367,23 +367,42 @@ function initApp() {
 }
 
 // Chuyển đổi giữa 4 trò chơi ngay tức thì (0ms, không tải lại trang)
+let lastTabSwitchTime = 0;
+function switchGameTab(targetGame) {
+    if (!targetGame) return;
+    const now = Date.now();
+    if (now - lastTabSwitchTime < 80) return;
+    lastTabSwitchTime = now;
+
+    playSound('click');
+
+    // Đổi tab active
+    document.querySelectorAll('.hub-tab-btn').forEach(b => {
+        if (b.dataset.gameTarget === targetGame) {
+            b.classList.add('active');
+        } else {
+            b.classList.remove('active');
+        }
+    });
+
+    // Ẩn tất cả trò chơi
+    document.querySelectorAll('.game-view').forEach(v => v.classList.add('hidden'));
+
+    // Hiện trò chơi được chọn
+    const targetEl = document.getElementById(`game-view-${targetGame}`);
+    if (targetEl) targetEl.classList.remove('hidden');
+}
+window.switchGameTab = switchGameTab;
+
 function setupHubNavigation() {
     document.querySelectorAll('.hub-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            playSound('click');
+        const handler = (e) => {
+            e.preventDefault();
             const targetGame = btn.dataset.gameTarget;
-
-            // Đổi tab active
-            document.querySelectorAll('.hub-tab-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            // Ẩn tất cả trò chơi
-            document.querySelectorAll('.game-view').forEach(v => v.classList.add('hidden'));
-
-            // Hiện trò chơi được chọn
-            const targetEl = document.getElementById(`game-view-${targetGame}`);
-            if (targetEl) targetEl.classList.remove('hidden');
-        });
+            switchGameTab(targetGame);
+        };
+        btn.addEventListener('pointerdown', handler);
+        btn.addEventListener('click', handler);
     });
 }
 
@@ -607,7 +626,6 @@ async function handleJoinRoom(codeParam = '') {
         console.error('Lỗi tham gia phòng:', err);
         alert('Chưa có phòng nào đang chờ! Bạn hãy bấm "Tạo Phòng" trước nhé.');
     }
-}
 }
 
 function startPolling() {
